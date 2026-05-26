@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "storyagents"
+version = "0.1.0"
+description = "StoryAgents: Multi-Agent LLM Fiction Drafting Framework"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain-core>=0.3.81",
+    "langchain-anthropic>=0.3.15",
+    "langchain-experimental>=0.3.4",
+    "langchain-google-genai>=4.0.0",
+    "langchain-openai>=0.3.23",
+    "langgraph>=0.4.8",
+    "langgraph-checkpoint-sqlite>=2.0.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.32.4",
+    "rich>=14.0.0",
+    "typer>=0.21.0",
+    "tqdm>=4.67.1",
+    "typing-extensions>=4.14.0",
+]
+
+[project.scripts]
+storyagents = "storyagents.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["storyagents*"]
+
+[tool.setuptools.package-data]
+storyagents = ["h5/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: fast isolated unit tests",
+    "integration: tests requiring external services",
+    "smoke: quick sanity-check tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
