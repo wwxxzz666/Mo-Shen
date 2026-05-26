@@ -25,6 +25,8 @@ htmlcov/
 
 # Node
 node_modules/
+package.json
+package-lock.json
 
 # Project generated files
 results/
@@ -39,3 +41,27 @@ Thumbs.db
 # Temp files
 *.tmp
 *.bak
+
+# Local scratch and generated artifacts
+.claude/
+stories/
+analysis.txt
+api_result.json
+cur.html
+current_page.html
+gh_*.txt
+git_*.txt
+homepage.png
+homepage_v2.png
+manuscript.txt
+nul
+resp.txt
+resp_log.txt
+ssh_keys.txt
+studio.png
+temp_resp.txt
+test_result.json
+test_save.json
+test_styles.css
+test_summary.txt
+前端界面.png
