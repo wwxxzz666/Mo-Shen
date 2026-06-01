@@ -222,3 +222,14 @@ class ShowrunnerDecision(BaseModel):
     next_chapter_focus: str = Field(
         description="Guidance for the next chapter, or a closing note if the story is done."
     )
+
+
+class EditResult(BaseModel):
+    """Result from an editing operation (rewrite, expand, compress, polish)."""
+
+    edited_text: str = Field(
+        description="The edited text after the operation."
+    )
+    changes_summary: str = Field(
+        description="A brief summary of what changes were made."
+    )

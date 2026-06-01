@@ -3,206 +3,333 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>墨神 MòShén</title>
-  <meta name="description" content="墨神 — 多智能体小说生成控制台">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Prata&display=swap" rel="stylesheet">
+  <title>墨神 Mo-Shen</title>
+  <meta name="description" content="墨神，多智能体小说创作工作台。">
   <link rel="stylesheet" href="/h5/styles.css">
   <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
 </head>
 <body>
-  <div class="aurora aurora-1"></div>
-  <div class="aurora aurora-2"></div>
-  <div class="aurora aurora-3"></div>
+  <div class="ambient-backdrop" aria-hidden="true">
+    <div class="ambient-orb orb-a"></div>
+    <div class="ambient-orb orb-b"></div>
+    <div class="ambient-orb orb-c"></div>
+    <div class="ambient-grid"></div>
+    <div class="ambient-noise"></div>
+  </div>
 
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </div>
-      <span class="brand-text">墨神</span>
-    </div>
-
-    <nav class="sidebar-nav">
-      <button class="nav-item is-active" data-view="home" type="button">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span>首页</span>
-      </button>
-      <button class="nav-item" data-view="studio" type="button">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        <span>工作室</span>
-      </button>
-      <button class="nav-item" data-view="history" type="button">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>历史</span>
-      </button>
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="agent-pip">
-        <span class="pip-dot"></span>
-        <span class="pip-label">4 智能体就绪</span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Mobile top bar -->
   <header class="topbar">
-    <span class="topbar-brand">墨神</span>
-    <div class="topbar-nav">
+    <div class="topbar-brand-wrap">
+      <span class="topbar-brand">墨神</span>
+      <span class="topbar-subtitle">Story Operating Room</span>
+    </div>
+    <nav class="topbar-nav">
       <button class="topbar-item is-active" data-view="home" type="button">首页</button>
       <button class="topbar-item" data-view="studio" type="button">工作室</button>
       <button class="topbar-item" data-view="history" type="button">历史</button>
-    </div>
+    </nav>
   </header>
 
   <main class="content-area">
-
-    <!-- ===== VIEW: HOME ===== -->
     <section id="view-home" class="view is-active">
-      <div class="home-hero">
-        <div class="home-hero-text">
-          <p class="view-kicker">墨神 MòShén</p>
-          <h1 class="home-title">多智能体<br>小说生成工作室</h1>
-          <p class="home-desc">4 个专职 AI 智能体接力协作，从创意到成稿的完整创作流水线。</p>
-          <button class="primary-button home-cta" type="button" data-goto="studio">
-            开始创作
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
-        </div>
-        <div class="home-hero-visual">
-          <div class="home-pipeline">
-            <div class="pipeline-node">
-              <span class="pipeline-num">01</span>
-              <span class="pipeline-label">策划编辑</span>
-            </div>
-            <div class="pipeline-line"></div>
-            <div class="pipeline-node">
-              <span class="pipeline-num">02</span>
-              <span class="pipeline-label">剧情架构师</span>
-            </div>
-            <div class="pipeline-line"></div>
-            <div class="pipeline-node">
-              <span class="pipeline-num">03</span>
-              <span class="pipeline-label">章节写手</span>
-            </div>
-            <div class="pipeline-line"></div>
-            <div class="pipeline-node">
-              <span class="pipeline-num">04</span>
-              <span class="pipeline-label">总编</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="home-stage">
+        <div class="home-copy">
+          <p class="view-kicker anim-fade-up delay-1">AI Writer's Room</p>
+          <h1 class="home-title anim-blur-in delay-2">让灵感在液态玻璃里成形。</h1>
+          <p class="home-desc anim-fade-up delay-3">
+            从故事 brief、大纲、角色到章节成稿，墨神把多智能体协作做成一个更像创作器械而不是命令行的空间。
+          </p>
 
-      <div class="home-about">
-        <p>墨神（MòShén）是一个基于 LangGraph 的多智能体小说生成框架。系统通过策划编辑、剧情架构师、章节写手和总编四个专职 AI 智能体接力协作，将一个创意想法逐步转化为完整的小说成稿。支持 DeepSeek、OpenAI、Anthropic 等多种大语言模型后端，内置极速模式优先保证出稿速度。</p>
-      </div>
-    </section>
-
-    <!-- ===== VIEW: STUDIO (Compose + Workflow + Artifacts) ===== -->
-    <section id="view-studio" class="view">
-      <div class="view-header">
-        <div>
-          <p class="view-kicker">工作室</p>
-          <h1 class="view-title">创作与生成</h1>
-          <p class="view-desc">填写创意需求，提交后实时追踪智能体协作进度与产物。</p>
-        </div>
-        <div class="studio-header-actions">
-          <span id="run-state" class="state-badge">就绪</span>
-        </div>
-      </div>
-
-      <!-- Top: Compose Form -->
-      <div class="studio-compose">
-        <form id="story-form" class="story-form">
-          <label class="field">
-            <span class="field-label">故事需求</span>
-            <textarea id="prompt" name="prompt" rows="4"
-              placeholder="例如：写一个发生在海上记忆之城的悬疑小说，基调冷冽克制，主角是替人打捞失落记忆的少女。"
-              required></textarea>
-          </label>
-
-          <div class="field-grid">
-            <label class="field">
-              <span class="field-label">题材</span>
-              <input id="genre" name="genre" type="text" value="悬疑 / 科幻">
-            </label>
-            <label class="field">
-              <span class="field-label">语气</span>
-              <input id="tone" name="tone" type="text" value="冷冽、抒情、带压迫感">
-            </label>
-            <label class="field">
-              <span class="field-label">读者</span>
-              <input id="audience" name="audience" type="text" value="成年向">
-            </label>
-            <label class="field">
-              <span class="field-label">章节数</span>
-              <div class="range-wrap">
-                <input id="chapters" name="chapters" type="range" min="1" max="12" value="3">
-                <strong id="chapter-count">3 章</strong>
-              </div>
-            </label>
-          </div>
-
-          <div class="form-row">
-            <div class="chips-row">
-              <button class="chip" type="button" data-prompt="写一个赛博武侠开篇，主角是一名失忆剑客，被迫在云端城与旧时代门派之间做选择。">赛博武侠</button>
-              <button class="chip" type="button" data-prompt="写一个发生在沙漠列车上的密室悬疑故事，列车每停一站都会少一个乘客。">沙漠列车悬疑</button>
-              <button class="chip" type="button" data-prompt="写一个偏治愈的都市奇幻短篇，主角经营一家帮人寄存后悔的夜间洗衣店。">都市奇幻治愈</button>
-            </div>
-            <button id="submit-button" class="primary-button" type="submit">
-              开始生成小说
+          <div class="home-actions anim-fade-up delay-4">
+            <button class="primary-button home-cta" type="button" data-goto="studio">
+              开始创作
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
+            <button class="outline-button" type="button" data-goto="history">查看历史项目</button>
           </div>
-        </form>
 
-        <div id="progress-panel" class="progress-panel is-hidden" aria-live="polite">
-          <div class="progress-head">
-            <strong id="progress-title">正在生成小说</strong>
-            <span id="progress-percent">0%</span>
+          <div class="home-metrics anim-fade-up delay-5">
+            <div class="metric-pill">
+              <strong>4</strong>
+              <span>核心智能体</span>
+            </div>
+            <div class="metric-pill">
+              <strong>TXT / DOCX</strong>
+              <span>完整导出</span>
+            </div>
+            <div class="metric-pill">
+              <strong>Streaming</strong>
+              <span>实时创作过程</span>
+            </div>
           </div>
-          <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-            <div id="progress-fill" class="progress-fill"></div>
-          </div>
-          <p id="progress-stage" class="progress-stage">正在准备创作任务...</p>
+        </div>
+
+        <div class="home-showcase anim-scale-in delay-4">
+          <article class="showcase-pane showcase-pane-main">
+            <div class="showcase-pane-head">
+              <span class="showcase-chip">Live Draft</span>
+              <span class="showcase-dot-row">
+                <i></i><i></i><i></i>
+              </span>
+            </div>
+            <h2>海上记忆之城</h2>
+            <p>策划、架构、写作、总编依次接力，像一块层层折射的玻璃把模糊想法压成具体章节。</p>
+            <div class="showcase-wave"></div>
+          </article>
+
+          <article class="showcase-pane showcase-pane-float showcase-pane-outline">
+            <span class="showcase-pane-label">Outline</span>
+            <p>章节钩子、冲突曲线、连续性提示会同步沉淀到右侧产物面板。</p>
+          </article>
+
+          <article class="showcase-pane showcase-pane-float showcase-pane-room">
+            <span class="showcase-pane-label">Room Log</span>
+            <ul>
+              <li>Planner 设定基调</li>
+              <li>Outline Agent 排布节奏</li>
+              <li>Chapter Writer 生成正文</li>
+            </ul>
+          </article>
         </div>
       </div>
 
-      <!-- Bottom: Workflow + Artifacts side by side -->
-      <div class="studio-output">
-        <div class="studio-col studio-col-left">
-          <h3 class="sub-title">智能体状态</h3>
-          <div id="agent-list" class="agent-list"></div>
-          <h3 class="sub-title" style="margin-top:20px">活动日志</h3>
-          <div id="activity-log" class="activity-log" aria-live="polite"></div>
+      <div class="home-pipeline">
+        <div class="pipeline-node anim-scale-in delay-1">
+          <span class="pipeline-num">01</span>
+          <span class="pipeline-label">策划编辑</span>
         </div>
-        <div class="studio-col studio-col-right">
-          <h3 class="sub-title">创作产物</h3>
-          <div id="artifact-tabs" class="artifact-tabs" role="tablist" aria-label="故事产物切换"></div>
-          <div id="artifact-content" class="artifact-content"></div>
+        <div class="pipeline-line anim-fade-up delay-2"></div>
+        <div class="pipeline-node anim-scale-in delay-3">
+          <span class="pipeline-num">02</span>
+          <span class="pipeline-label">剧情架构师</span>
+        </div>
+        <div class="pipeline-line anim-fade-up delay-4"></div>
+        <div class="pipeline-node anim-scale-in delay-5">
+          <span class="pipeline-num">03</span>
+          <span class="pipeline-label">章节写手</span>
+        </div>
+        <div class="pipeline-line anim-fade-up delay-6"></div>
+        <div class="pipeline-node anim-scale-in delay-7">
+          <span class="pipeline-num">04</span>
+          <span class="pipeline-label">总编</span>
+        </div>
+      </div>
+
+      <div class="home-about glass-panel anim-fade-up">
+        <div class="home-about-copy">
+          <p class="home-about-kicker">为什么是工作台，而不是生成器</p>
+          <p>
+            你不只是得到一段文本，而是得到一个可以持续推进、修订、续写、导出的故事项目。墨神把创作的每一层都做成可见、可回看、可继续操作的流程。
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- ===== VIEW: HISTORY ===== -->
+    <section id="view-studio" class="view studio-view">
+      <div class="studio-layout">
+        <aside class="studio-left-panel glass-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Creative Setup</p>
+              <h2 class="panel-title">创作设置</h2>
+            </div>
+            <span id="run-state" class="state-badge">就绪</span>
+          </div>
+
+          <form id="story-form" class="story-form">
+            <div class="panel-section">
+              <h3 class="section-title">风格预设</h3>
+              <div class="preset-grid" id="preset-grid">
+                <button class="preset-card" type="button" data-preset="wuxia">
+                  <span class="preset-icon">剑</span>
+                  <span class="preset-name">武侠</span>
+                </button>
+                <button class="preset-card" type="button" data-preset="detective">
+                  <span class="preset-icon">案</span>
+                  <span class="preset-name">推理</span>
+                </button>
+                <button class="preset-card" type="button" data-preset="murakami">
+                  <span class="preset-icon">夜</span>
+                  <span class="preset-name">都市</span>
+                </button>
+                <button class="preset-card" type="button" data-preset="healing">
+                  <span class="preset-icon">光</span>
+                  <span class="preset-name">治愈</span>
+                </button>
+                <button class="preset-card" type="button" data-preset="cyberpunk">
+                  <span class="preset-icon">芯</span>
+                  <span class="preset-name">赛博</span>
+                </button>
+                <button class="preset-card" type="button" data-preset="xianxia">
+                  <span class="preset-icon">云</span>
+                  <span class="preset-name">仙侠</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3 class="section-title">故事需求</h3>
+              <textarea id="prompt" name="prompt" rows="5" placeholder="描述你想写的故事：背景、人物、冲突、情绪都可以。" required></textarea>
+            </div>
+
+            <div class="panel-section">
+              <h3 class="section-title">参数设置</h3>
+              <div class="param-grid">
+                <label class="param-field">
+                  <span class="param-label">题材</span>
+                  <input id="genre" name="genre" type="text" value="悬疑 / 科幻">
+                </label>
+                <label class="param-field">
+                  <span class="param-label">语气</span>
+                  <input id="tone" name="tone" type="text" value="冷静、抒情、带压迫感">
+                </label>
+                <label class="param-field">
+                  <span class="param-label">读者</span>
+                  <input id="audience" name="audience" type="text" value="成年向">
+                </label>
+                <label class="param-field">
+                  <span class="param-label">章节数</span>
+                  <div class="range-wrap">
+                    <input id="chapters" name="chapters" type="range" min="1" max="12" value="3">
+                    <strong id="chapter-count">3 章</strong>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3 class="section-title">快速灵感</h3>
+              <div class="chips-row">
+                <button class="chip" type="button" data-prompt="写一个赛博武侠开篇，主角是一名失忆剑客，在高楼与霓虹之间追查一场旧案。">赛博武侠</button>
+                <button class="chip" type="button" data-prompt="写一个发生在沙漠列车上的密室悬疑故事，乘客每个人都像在隐瞒真相。">沙漠列车</button>
+                <button class="chip" type="button" data-prompt="写一个偏治愈的都市奇幻短篇，深夜便利店会收留迷路的人与记忆。">都市奇幻</button>
+              </div>
+            </div>
+
+            <div class="panel-actions">
+              <button id="submit-button" class="primary-button" type="submit">开始生成</button>
+              <button id="stop-button" class="stop-button is-hidden" type="button">
+                <span class="stop-icon">■</span>
+                停止
+              </button>
+            </div>
+          </form>
+
+          <div id="progress-panel" class="progress-panel is-hidden" aria-live="polite">
+            <div class="progress-head">
+              <strong id="progress-title">生成中</strong>
+              <span id="progress-percent">0%</span>
+            </div>
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <p id="progress-stage" class="progress-stage">准备中…</p>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">智能体状态</h3>
+            <div id="agent-list" class="agent-list"></div>
+          </div>
+        </aside>
+
+        <section class="studio-main">
+          <div class="studio-chat-shell glass-panel">
+            <div class="chat-header">
+              <div>
+                <p class="panel-kicker">Writer's Room Feed</p>
+                <h2 class="chat-title">创作过程</h2>
+              </div>
+              <div class="chat-actions">
+                <button id="clear-chat" class="chat-action-btn" type="button" title="清空">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="chat-container" id="chat-container">
+              <div class="chat-welcome">
+                <div class="chat-welcome-icon">✦</div>
+                <h3>创作过程会在这里展开</h3>
+                <p>左侧设置故事条件后，策划、架构、写作和总编的接力过程会以实时流的形式显示在这里。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="studio-output">
+            <section class="studio-col studio-col-left glass-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="panel-kicker">Room Notes</p>
+                  <h3 class="panel-title">运行纪要</h3>
+                </div>
+              </div>
+              <div id="activity-log" class="activity-log"></div>
+            </section>
+
+            <section class="studio-col studio-col-right glass-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="panel-kicker">Artifacts</p>
+                  <h3 class="panel-title">创作产物</h3>
+                </div>
+              </div>
+              <div id="artifact-tabs" class="artifact-tabs"></div>
+              <div id="artifact-content" class="artifact-content"></div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+
     <section id="view-history" class="view">
       <div class="view-header">
-        <div>
-          <p class="view-kicker">历史记录</p>
-          <h1 class="view-title">创作历史</h1>
-          <p class="view-desc">回顾之前生成的故事。</p>
-        </div>
-        <button id="refresh-history" class="outline-button" type="button">
+        <p class="view-kicker anim-fade-up delay-1">Project Archive</p>
+        <h1 class="view-title anim-blur-in delay-2">创作历史</h1>
+        <p class="view-desc anim-fade-up delay-3">所有故事都会以项目形态沉淀在这里，方便回看、续写和导出。</p>
+        <button id="refresh-history" class="outline-button anim-fade-up delay-4" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          刷新
+          刷新历史
         </button>
       </div>
       <div id="history-list" class="history-list"></div>
     </section>
-
   </main>
+
+  <div id="edit-toolbar" class="edit-toolbar is-hidden">
+    <div class="edit-toolbar-inner">
+      <span class="edit-toolbar-label">编辑选中文本</span>
+      <button class="edit-btn" data-action="rewrite" type="button">改写</button>
+      <button class="edit-btn" data-action="expand" type="button">扩写</button>
+      <button class="edit-btn" data-action="compress" type="button">缩写</button>
+      <button class="edit-btn" data-action="polish" type="button">润色</button>
+      <button class="edit-btn edit-btn-close" type="button">关闭</button>
+    </div>
+  </div>
+
+  <div id="edit-modal-overlay" class="modal-overlay is-hidden">
+    <div class="modal edit-modal">
+      <div class="modal-head">
+        <h2>编辑结果</h2>
+        <button class="modal-close" id="edit-modal-close" type="button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="edit-result-info">
+          <span id="edit-action-label" class="edit-action-badge"></span>
+          <span id="edit-changes-summary" class="edit-changes-text"></span>
+        </div>
+        <div class="edit-result-preview">
+          <h4>修改后</h4>
+          <pre id="edit-result-text"></pre>
+        </div>
+        <div class="edit-original-preview">
+          <h4>原始内容</h4>
+          <pre id="edit-original-text"></pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="outline-button" id="edit-cancel-btn" type="button">取消</button>
+        <button class="primary-button" id="edit-apply-btn" type="button">应用修改</button>
+      </div>
+    </div>
+  </div>
 
   <template id="agent-card-template">
     <article class="agent-card">
