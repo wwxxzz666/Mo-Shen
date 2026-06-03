@@ -1,5 +1,19 @@
 # 墨神 Mo-Shen
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776ab?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/LangGraph-powered-009688" alt="LangGraph">
+  <img src="https://img.shields.io/badge/LLM-DeepSeek|OpenAI|Claude-ff6b6b" alt="LLM">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT">
+  <img src="https://img.shields.io/github/stars/wwxxzz666/Mo-Shen?style=social" alt="Stars">
+</p>
+
+<p align="center">
+  <b>A multi-agent novel writing workbench — 5 specialized AI agents collaborate to take your story from spark to finished manuscript.</b>
+</p>
+
+---
+
 多智能体小说创作工作台。`Mo-Shen` 把灵感整理、世界观设定、角色设计、章节写作、连续性审校和成稿导出串成一条可持续推进的创作链路。
 
 ## 项目预览
@@ -8,16 +22,13 @@
 
 ![墨神工作台](docs/assets/studio.png)
 
-## 现在能做什么
+## 亮点
 
-- 三档工作流模式：`快速出稿`、`标准创作`、`深度打磨`
-- 多智能体协作生成：策划、世界观、角色、章节、审校、总编分工推进
-- 流式创作过程展示：实时看到每个智能体的输出和章节推进
-- 故事项目持久化：生成、编辑、续写都会回写到同一个故事项目
-- 历史项目管理：查看、续写、导出、删除
-- 文本局部编辑：改写、扩写、压缩、润色后可直接保存回故事
-- 成稿导出：`TXT` / `DOCX`
-- 多模型兼容：DeepSeek、OpenAI、Anthropic、Google 等兼容 OpenAI 风格接口的后端
+- **多智能体协作** — 策划、世界观、角色、章节、审校、总编，5 个专职 Agent 接力完成
+- **三档工作流** — 快速出稿 / 标准创作 / 深度打磨，按需选择
+- **流式输出** — 实时看到每个 Agent 的思考过程和章节推进
+- **多模型兼容** — DeepSeek、OpenAI、Anthropic、Google 等兼容 OpenAI 风格接口的后端
+- **成稿导出** — 支持 TXT / DOCX 格式
 
 ## 工作流模式
 
@@ -39,7 +50,7 @@ pip install -e .
 
 ### 2. 配置
 
-创建 `.env` 文件，填入你的模型服务配置，例如：
+创建 `.env` 文件，填入你的模型服务配置：
 
 ```env
 DEEPSEEK_API_KEY=sk-xxxx
