@@ -25,26 +25,29 @@ class StoryGraphSetup:
 
     def setup_graph(self):
         workflow = StateGraph(StoryState)
-        fast_mode = self.config.get("fast_mode", True)
+        workflow_mode = self.config.get("workflow_mode", "quick")
+        include_worldbuilding = workflow_mode in {"standard", "deep"}
+        include_continuity_review = workflow_mode == "deep"
 
         workflow.add_node("Planner", create_story_planner(self.deep_llm, self.config))
         workflow.add_node("Outline Agent", create_outline_agent(self.deep_llm, self.config))
         workflow.add_node("Chapter Writer", create_chapter_writer(self.quick_llm, self.config))
         workflow.add_node("Showrunner", create_showrunner(self.deep_llm, self.config))
 
-        if not fast_mode:
+        if include_worldbuilding:
             workflow.add_node("Worldbuilder", create_worldbuilder(self.quick_llm, self.config))
             workflow.add_node(
                 "Character Designer",
                 create_character_designer(self.quick_llm, self.config),
             )
+        if include_continuity_review:
             workflow.add_node(
                 "Continuity Reviewer",
                 create_continuity_reviewer(self.quick_llm, self.config),
             )
 
         workflow.add_edge(START, "Planner")
-        if fast_mode:
+        if workflow_mode == "quick":
             workflow.add_edge("Planner", "Outline Agent")
             workflow.add_edge("Outline Agent", "Chapter Writer")
             workflow.add_edge("Chapter Writer", "Showrunner")
@@ -53,12 +56,15 @@ class StoryGraphSetup:
             workflow.add_edge("Worldbuilder", "Character Designer")
             workflow.add_edge("Character Designer", "Outline Agent")
             workflow.add_edge("Outline Agent", "Chapter Writer")
-            workflow.add_edge("Chapter Writer", "Continuity Reviewer")
-            workflow.add_conditional_edges(
-                "Continuity Reviewer",
-                self.logic.after_reviewer,
-                {"Chapter Writer": "Chapter Writer", "Showrunner": "Showrunner"},
-            )
+            if include_continuity_review:
+                workflow.add_edge("Chapter Writer", "Continuity Reviewer")
+                workflow.add_conditional_edges(
+                    "Continuity Reviewer",
+                    self.logic.after_reviewer,
+                    {"Chapter Writer": "Chapter Writer", "Showrunner": "Showrunner"},
+                )
+            else:
+                workflow.add_edge("Chapter Writer", "Showrunner")
         workflow.add_conditional_edges(
             "Showrunner",
             self.logic.after_showrunner,

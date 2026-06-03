@@ -683,6 +683,18 @@ a {
   color: rgba(21, 59, 104, 0.56);
 }
 
+.section-head {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.section-caption {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
 .story-form {
   display: grid;
   gap: 1rem;
@@ -691,6 +703,68 @@ a {
 .param-grid {
   display: grid;
   gap: 0.85rem;
+}
+
+.mode-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.mode-card {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem 1rem 1.05rem;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.14);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.mode-card input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mode-card-top strong {
+  font-size: 0.96rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.mode-card-top em {
+  font-style: normal;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.mode-card-desc {
+  font-size: 0.83rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.mode-card:hover {
+  transform: translateY(-1px);
+}
+
+.mode-card.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 32%, rgba(255, 255, 255, 0.2));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), color-mix(in srgb, var(--accent) 12%, rgba(255, 255, 255, 0.12))),
+    rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .param-field {

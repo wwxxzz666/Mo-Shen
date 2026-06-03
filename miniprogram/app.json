@@ -1,0 +1,43 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/index/index",
+    "pages/studio/studio",
+    "pages/manuscript/manuscript",
+    "pages/history/history"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarTitleText": "墨神AI创作",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0f0f1e"
+  },
+  "networkTimeout": {
+    "request": 60000,
+    "downloadFile": 60000,
+    "connectSocket": 60000,
+    "uploadFile": 60000
+  },
+  "tabBar": {
+    "color": "#8a8a8a",
+    "selectedColor": "#ffd700",
+    "backgroundColor": "#1a1a2e",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/index/index",
+        "text": "创作"
+      },
+      {
+        "pagePath": "pages/history/history",
+        "text": "历史"
+      }
+    ]
+  },
+  "debug": true
+}

@@ -1,0 +1,161 @@
+<!-- 
+  创作页面 - 液态玻璃风格
+  包含：故事需求输入、创作模式选择、参数设置、快速灵感
+-->
+<view class="container">
+  <!-- 背景装饰 -->
+  <view class="bg-glow glow-1"></view>
+  <view class="bg-glow glow-2"></view>
+
+  <!-- 顶部欢迎区域 -->
+  <view class="hero-section">
+    <text class="hero-icon">✍️</text>
+    <text class="hero-title">开始创作</text>
+    <text class="hero-desc">描述你的故事，让AI帮你实现</text>
+  </view>
+
+  <!-- 故事需求输入 -->
+  <view class="card glass-card glass-card-gold">
+    <view class="card-header">
+      <text class="card-icon">📝</text>
+      <text class="card-title">故事需求</text>
+    </view>
+    <textarea 
+      class="prompt-input" 
+      placeholder="描述你想写的故事：背景、人物、冲突、情绪都可以。"
+      placeholder-style="color: rgba(255,255,255,0.3)"
+      value="{{prompt}}"
+      bindinput="onPromptInput"
+      maxlength="2000"
+      auto-height
+    />
+    <view class="input-footer">
+      <text class="char-count">{{prompt.length}}/2000</text>
+    </view>
+  </view>
+
+  <!-- 创作模式选择 -->
+  <view class="card glass-card">
+    <view class="card-header">
+      <text class="card-icon">🎯</text>
+      <text class="card-title">创作模式</text>
+    </view>
+    <text class="mode-summary">{{modeSummary}}</text>
+    <view class="mode-grid">
+      <view 
+        class="mode-card {{selectedMode === 'quick' ? 'selected' : ''}}" 
+        bindtap="selectMode" 
+        data-mode="quick"
+      >
+        <view class="mode-top">
+          <text class="mode-name">快速出稿</text>
+          <text class="mode-nodes">4 节点</text>
+        </view>
+        <text class="mode-desc">最短链路起稿，直接产出需求、大纲、章节和成稿。</text>
+        <view class="mode-indicator"></view>
+      </view>
+
+      <view 
+        class="mode-card {{selectedMode === 'standard' ? 'selected' : ''}}" 
+        bindtap="selectMode" 
+        data-mode="standard"
+      >
+        <view class="mode-top">
+          <text class="mode-name">标准创作</text>
+          <text class="mode-nodes">6 节点</text>
+        </view>
+        <text class="mode-desc">补齐世界观与角色层，再进入章节写作，更适合稳定创作。</text>
+        <view class="mode-indicator"></view>
+      </view>
+
+      <view 
+        class="mode-card {{selectedMode === 'deep' ? 'selected' : ''}}" 
+        bindtap="selectMode" 
+        data-mode="deep"
+      >
+        <view class="mode-top">
+          <text class="mode-name">深度打磨</text>
+          <text class="mode-nodes">7 节点</text>
+        </view>
+        <text class="mode-desc">加入连续性审校，适合长篇、人设复杂和伏笔密集的项目。</text>
+        <view class="mode-indicator"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 参数设置 -->
+  <view class="card glass-card">
+    <view class="card-header">
+      <text class="card-icon">⚙️</text>
+      <text class="card-title">参数设置</text>
+    </view>
+    <view class="param-grid">
+      <view class="param-item">
+        <text class="param-label">题材</text>
+        <input class="param-input" value="{{genre}}" bindinput="onGenreInput" placeholder="如：悬疑 / 科幻" placeholder-style="color: rgba(255,255,255,0.3)"/>
+      </view>
+      <view class="param-item">
+        <text class="param-label">语气</text>
+        <input class="param-input" value="{{tone}}" bindinput="onToneInput" placeholder="如：冷静、抒情" placeholder-style="color: rgba(255,255,255,0.3)"/>
+      </view>
+      <view class="param-item">
+        <text class="param-label">读者</text>
+        <input class="param-input" value="{{audience}}" bindinput="onAudienceInput" placeholder="如：成年向" placeholder-style="color: rgba(255,255,255,0.3)"/>
+      </view>
+      <view class="param-item">
+        <text class="param-label">章节数</text>
+        <slider 
+          class="param-slider" 
+          min="1" max="12" 
+          value="{{chapters}}" 
+          show-value
+          activeColor="#ffd700"
+          backgroundColor="rgba(255,255,255,0.1)"
+          block-size="24"
+          block-color="#ffd700"
+          bindchange="onChaptersChange"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 快速灵感 -->
+  <view class="card glass-card">
+    <view class="card-header">
+      <text class="card-icon">💡</text>
+      <text class="card-title">快速灵感</text>
+    </view>
+    <view class="chips-row">
+      <view class="chip" bindtap="useChip" data-prompt="写一个赛博武侠开篇，主角是一名失忆剑客，在高楼与霓虹之间追查一场旧案。">
+        <text class="chip-icon">⚔️</text>
+        <text class="chip-text">赛博武侠</text>
+      </view>
+      <view class="chip" bindtap="useChip" data-prompt="写一个发生在沙漠列车上的密室悬疑故事，乘客每个人都像在隐瞒真相。">
+        <text class="chip-icon">🚂</text>
+        <text class="chip-text">沙漠列车</text>
+      </view>
+      <view class="chip" bindtap="useChip" data-prompt="写一个偏治愈的都市奇幻短篇，深夜便利店会收留迷路的人与记忆。">
+        <text class="chip-icon">🏪</text>
+        <text class="chip-text">都市奇幻</text>
+      </view>
+      <view class="chip" bindtap="useChip" data-prompt="写一个星际探险故事，主角是一艘破旧货船的船长，在银河边缘发现了一个神秘信号。">
+        <text class="chip-icon">🚀</text>
+        <text class="chip-text">星际漂流</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 开始创作按钮 -->
+  <view class="action-section">
+    <button class="start-btn btn-primary-glass" bindtap="startCreate" disabled="{{!prompt}}">
+      <text class="btn-icon">🚀</text>
+      <text class="btn-text">开始生成</text>
+    </button>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer">
+    <view class="divider-glass"></view>
+    <text class="footer-text">基于 LangGraph 多智能体框架</text>
+  </view>
+</view>

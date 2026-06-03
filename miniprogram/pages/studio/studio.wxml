@@ -1,0 +1,87 @@
+<!--
+  创作工作台页面 - 液态玻璃风格
+  展示6个智能体的工作进度，模拟小说创作过程
+-->
+<view class="container">
+  <!-- 背景装饰 -->
+  <view class="bg-glow glow-1"></view>
+  <view class="bg-glow glow-2"></view>
+
+  <!-- 顶部标题栏 -->
+  <view class="header glass-card">
+    <view class="header-inner">
+      <text class="back-btn" bindtap="goBack">← 返回</text>
+      <text class="title">创作工作台</text>
+      <view class="genre-badge">
+        <text class="genre-text">{{genre}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 故事信息 -->
+  <view class="story-info glass-card glass-card-gold">
+    <view class="story-info-inner">
+      <text class="story-title">{{storyTitle}}</text>
+      <view class="story-status">
+        <view class="status-dot {{isRunning ? 'status-dot-running' : (isCompleted ? 'status-dot-completed' : 'status-dot-pending')}}"></view>
+        <text class="story-desc">{{isRunning ? 'AI 智能体正在创作...' : (isCompleted ? '创作完成！' : '等待开始创作')}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 智能体进度列表 -->
+  <view class="agent-list">
+    <view class="agent-card glass-card {{item.status}}" wx:for="{{agents}}" wx:key="name">
+      <!-- 智能体头部 -->
+      <view class="agent-header">
+        <view class="agent-icon-wrap">
+          <view class="agent-icon-glow"></view>
+          <text class="agent-icon">{{item.icon}}</text>
+        </view>
+        <view class="agent-info">
+          <text class="agent-name">{{item.name}}</text>
+          <text class="agent-desc">{{item.desc}}</text>
+        </view>
+        <view class="agent-status-badge {{item.status}}">
+          <view class="status-dot {{item.status === 'running' ? 'status-dot-running' : (item.status === 'completed' ? 'status-dot-completed' : 'status-dot-pending')}}"></view>
+          <text class="status-text">{{item.statusText}}</text>
+        </view>
+      </view>
+
+      <!-- 进度条 -->
+      <view class="progress-bar progress-glass">
+        <view class="progress-fill progress-glass-fill" style="width: {{item.progress}}%"></view>
+      </view>
+
+      <!-- 输出内容 -->
+      <view class="agent-output" wx:if="{{item.output}}">
+        <view class="output-header">
+          <text class="output-label">输出内容</text>
+        </view>
+        <text class="output-text">{{item.output}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar glass-card">
+    <view class="bottom-bar-inner">
+      <button class="btn btn-secondary" bindtap="pauseCreation" wx:if="{{isRunning}}">
+        <text class="btn-icon">⏸️</text>
+        <text>暂停</text>
+      </button>
+      <button class="btn btn-primary btn-primary-glass" bindtap="startCreation" wx:else>
+        <text class="btn-icon">▶️</text>
+        <text>{{isCompleted ? '重新创作' : '开始创作'}}</text>
+      </button>
+      <button class="btn btn-view" bindtap="viewManuscript" wx:if="{{isCompleted}}">
+        <text class="btn-icon">📖</text>
+        <text>查看成稿</text>
+      </button>
+      <button class="btn btn-export" bindtap="exportStory" wx:if="{{isCompleted}}">
+        <text class="btn-icon">📥</text>
+        <text>导出</text>
+      </button>
+    </view>
+  </view>
+</view>

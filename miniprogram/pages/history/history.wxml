@@ -1,0 +1,5 @@
+<view style="padding:20rpx">
+  <view wx:for="{{stories}}" wx:key="id" style="background:#fff;padding:20rpx;margin-bottom:20rpx;border-radius:10rpx">
+    <text>{{item.title}} - {{item.genre}}</text>
+  </view>
+</view>

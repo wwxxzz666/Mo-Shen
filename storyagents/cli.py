@@ -5,7 +5,7 @@ from typing import Optional
 
 import typer
 
-from storyagents.default_config import DEFAULT_STORY_CONFIG
+from storyagents.default_config import DEFAULT_STORY_CONFIG, normalize_workflow_mode
 from storyagents.graph.story_graph import StoryAgentsGraph
 from storyagents.server import serve as serve_storyagents
 
@@ -22,6 +22,7 @@ def _base_config(
     provider: Optional[str],
     deep_model: Optional[str],
     quick_model: Optional[str],
+    workflow_mode: Optional[str] = None,
     output_language: Optional[str] = None,
     deepseek_reasoning_effort: Optional[str] = None,
     deepseek_thinking_enabled: Optional[bool] = None,
@@ -34,6 +35,11 @@ def _base_config(
         config["deep_think_llm"] = deep_model
     if quick_model:
         config["quick_think_llm"] = quick_model
+    if workflow_mode:
+        config["workflow_mode"] = normalize_workflow_mode(workflow_mode)
+        config["fast_mode"] = config["workflow_mode"] == "quick"
+        if config["workflow_mode"] == "deep":
+            config["max_revision_rounds"] = max(config["max_revision_rounds"], 3)
     if output_language:
         config["output_language"] = output_language
     if deepseek_reasoning_effort:
@@ -69,6 +75,11 @@ def draft(
         "--quick-model",
         help="Override the drafting/review model.",
     ),
+    workflow_mode: str = typer.Option(
+        DEFAULT_STORY_CONFIG["workflow_mode"],
+        "--mode",
+        help="Workflow mode: quick, standard, or deep.",
+    ),
     output: Optional[Path] = typer.Option(
         None,
         "--output",
@@ -81,6 +92,7 @@ def draft(
         provider=provider,
         deep_model=deep_model,
         quick_model=quick_model,
+        workflow_mode=workflow_mode,
     )
 
     graph = StoryAgentsGraph(config=config)
@@ -120,6 +132,11 @@ def serve(
         "--quick-model",
         help="Override the drafting/review model for the server.",
     ),
+    workflow_mode: str = typer.Option(
+        DEFAULT_STORY_CONFIG["workflow_mode"],
+        "--mode",
+        help="Default workflow mode for the server: quick, standard, or deep.",
+    ),
     output_language: Optional[str] = typer.Option(
         None,
         "--output-language",
@@ -141,6 +158,7 @@ def serve(
         provider=provider,
         deep_model=deep_model,
         quick_model=quick_model,
+        workflow_mode=workflow_mode,
         output_language=output_language,
         deepseek_reasoning_effort=deepseek_reasoning_effort,
         deepseek_thinking_enabled=deepseek_thinking_enabled,

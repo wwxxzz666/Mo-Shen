@@ -64,4 +64,7 @@ test_result.json
 test_save.json
 test_styles.css
 test_summary.txt
+test-results/
+!docs/assets/homepage.png
+!docs/assets/studio.png
 前端界面.png

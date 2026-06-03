@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 from urllib.parse import unquote, urlparse
 
-from storyagents.default_config import DEFAULT_STORY_CONFIG
+from storyagents.default_config import DEFAULT_STORY_CONFIG, normalize_workflow_mode
 from storyagents.graph.story_graph import StoryAgentsGraph
 
 
@@ -24,6 +24,7 @@ def build_runtime_config(
     provider: Optional[str] = None,
     deep_model: Optional[str] = None,
     quick_model: Optional[str] = None,
+    workflow_mode: Optional[str] = None,
     output_language: Optional[str] = None,
     chapter_count: Optional[int] = None,
     results_dir: Optional[str] = None,
@@ -37,6 +38,11 @@ def build_runtime_config(
         config["deep_think_llm"] = deep_model
     if quick_model:
         config["quick_think_llm"] = quick_model
+    if workflow_mode:
+        config["workflow_mode"] = normalize_workflow_mode(workflow_mode)
+        config["fast_mode"] = config["workflow_mode"] == "quick"
+        if config["workflow_mode"] == "deep":
+            config["max_revision_rounds"] = max(int(config["max_revision_rounds"]), 3)
     if output_language:
         config["output_language"] = output_language
     if chapter_count is not None:
@@ -56,6 +62,7 @@ def build_request_overrides(payload: dict[str, Any]) -> dict[str, Any]:
         "provider": "llm_provider",
         "deep_model": "deep_think_llm",
         "quick_model": "quick_think_llm",
+        "mode": "workflow_mode",
         "output_language": "output_language",
         "results_dir": "results_dir",
         "deepseek_reasoning_effort": "deepseek_reasoning_effort",
@@ -63,9 +70,22 @@ def build_request_overrides(payload: dict[str, Any]) -> dict[str, Any]:
     }
     for incoming, target in field_map.items():
         if incoming in payload and payload[incoming] not in (None, ""):
-            overrides[target] = payload[incoming]
+            overrides[target] = (
+                normalize_workflow_mode(payload[incoming])
+                if incoming == "mode"
+                else payload[incoming]
+            )
+    if "workflow_mode" in payload and payload["workflow_mode"] not in (None, ""):
+        overrides["workflow_mode"] = normalize_workflow_mode(payload["workflow_mode"])
     if "chapters" in payload and payload["chapters"] not in (None, ""):
         overrides["target_chapters"] = max(1, min(12, int(payload["chapters"])))
+    if "workflow_mode" in overrides:
+        overrides["fast_mode"] = overrides["workflow_mode"] == "quick"
+        if overrides["workflow_mode"] == "deep":
+            overrides["max_revision_rounds"] = max(
+                int(DEFAULT_STORY_CONFIG["max_revision_rounds"]),
+                3,
+            )
     return overrides
 
 
@@ -82,6 +102,9 @@ def build_story_response_payload(state: dict[str, Any], manuscript: str) -> dict
         "continuity_notes": state.get("continuity_notes", ""),
         "showrunner_status": state.get("showrunner_status", ""),
         "final_manuscript": manuscript,
+        "workflow_mode": normalize_workflow_mode(
+            state.get("workflow_mode") or state.get("_workflow_mode")
+        ),
     }
 
 
@@ -236,6 +259,10 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             graph = self.graph_factory(overrides)
             state, manuscript = graph.generate_story(prompt, target_chapters=chapter_count)
             response = build_story_response_payload(state, manuscript)
+            response["workflow_mode"] = overrides.get(
+                "workflow_mode",
+                DEFAULT_STORY_CONFIG["workflow_mode"],
+            )
             story_id = self._save_story(payload, response)
             response["story_id"] = story_id
             self._send_json(response)
@@ -292,10 +319,17 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                     last_state,
                     last_state.get("final_manuscript", ""),
                 )
+                response["workflow_mode"] = overrides.get(
+                    "workflow_mode",
+                    DEFAULT_STORY_CONFIG["workflow_mode"],
+                )
                 story_id = self._save_story(payload, response)
                 saved_event = {
                     "event": "story_saved",
-                    "data": {"story_id": story_id},
+                    "data": {
+                        "story_id": story_id,
+                        "workflow_mode": response["workflow_mode"],
+                    },
                 }
                 self._write_sse_event(saved_event)
 
@@ -377,6 +411,11 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                 return
 
             existing_story = self._read_story_file(path)
+            payload = payload.copy()
+            payload.setdefault(
+                "mode",
+                existing_story.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"]),
+            )
 
             # Build continuation prompt
             existing_chapters = existing_story.get("chapters", [])
@@ -441,11 +480,17 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                     last_state,
                     last_state.get("final_manuscript", ""),
                 )
+                generated_story["workflow_mode"] = normalize_workflow_mode(
+                    payload.get("mode", DEFAULT_STORY_CONFIG["workflow_mode"])
+                )
                 merged_story = merge_story_payloads(existing_story, generated_story)
                 self._write_story_file(path, self._apply_story_metadata(existing_story, merged_story))
                 saved_event = {
                     "event": "story_saved",
-                    "data": {"story_id": safe_id},
+                    "data": {
+                        "story_id": safe_id,
+                        "workflow_mode": generated_story["workflow_mode"],
+                    },
                 }
                 self._write_sse_event(saved_event)
 
@@ -465,6 +510,7 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                         "title": data.get("story_title", ""),
                         "prompt": data.get("_prompt", ""),
                         "genre": data.get("_genre", ""),
+                        "mode": data.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"]),
                         "chapters": len(data.get("chapters", [])),
                         "created_at": data.get("_created_at", ""),
                         "updated_at": data.get("_updated_at", ""),
@@ -571,6 +617,13 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             if payload is not None
             else existing_story.get("_genre", "")
         )
+        result["_workflow_mode"] = normalize_workflow_mode(
+            (
+                payload.get("mode", existing_story.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"]))
+                if payload is not None
+                else existing_story.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"])
+            )
+        )
         result["_created_at"] = existing_story.get(
             "_created_at",
             time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts)),
@@ -638,6 +691,7 @@ def create_server(
                 provider=overrides.get("llm_provider"),
                 deep_model=overrides.get("deep_think_llm"),
                 quick_model=overrides.get("quick_think_llm"),
+                workflow_mode=overrides.get("workflow_mode"),
                 output_language=overrides.get("output_language"),
                 chapter_count=overrides.get("target_chapters"),
                 results_dir=overrides.get("results_dir"),

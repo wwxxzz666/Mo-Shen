@@ -172,6 +172,39 @@
             </div>
 
             <div class="panel-section">
+              <div class="section-head">
+                <h3 class="section-title">创作模式</h3>
+                <p id="mode-summary" class="section-caption">快速出稿 · 直接从 brief 到章节出稿，适合试题材、试节奏和快速起篇。</p>
+              </div>
+              <div class="mode-grid" id="mode-grid">
+                <label class="mode-card is-selected" data-mode="quick">
+                  <input type="radio" name="workflow_mode" value="quick" checked>
+                  <span class="mode-card-top">
+                    <strong>快速出稿</strong>
+                    <em>4 节点</em>
+                  </span>
+                  <span class="mode-card-desc">最短链路起稿，直接产出需求、大纲、章节和成稿。</span>
+                </label>
+                <label class="mode-card" data-mode="standard">
+                  <input type="radio" name="workflow_mode" value="standard">
+                  <span class="mode-card-top">
+                    <strong>标准创作</strong>
+                    <em>6 节点</em>
+                  </span>
+                  <span class="mode-card-desc">补齐世界观与角色层，再进入章节写作，更适合稳定创作。</span>
+                </label>
+                <label class="mode-card" data-mode="deep">
+                  <input type="radio" name="workflow_mode" value="deep">
+                  <span class="mode-card-top">
+                    <strong>深度打磨</strong>
+                    <em>7 节点</em>
+                  </span>
+                  <span class="mode-card-desc">加入连续性审校，适合长篇、人设复杂和伏笔密集的项目。</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="panel-section">
               <h3 class="section-title">参数设置</h3>
               <div class="param-grid">
                 <label class="param-field">

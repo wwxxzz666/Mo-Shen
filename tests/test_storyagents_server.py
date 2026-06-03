@@ -8,6 +8,8 @@ from urllib.request import Request, urlopen
 import storyagents.server as server_module
 from storyagents.server import (
     H5_DIR,
+    build_request_overrides,
+    build_runtime_config,
     build_story_response_payload,
     create_server,
 )
@@ -89,6 +91,18 @@ def test_build_story_response_payload():
     assert payload["chapters"] == ["x"]
 
 
+def test_mode_helpers():
+    overrides = build_request_overrides({"mode": "standard", "chapters": 5})
+    assert overrides["workflow_mode"] == "standard"
+    assert overrides["target_chapters"] == 5
+    assert overrides["fast_mode"] is False
+
+    config = build_runtime_config(workflow_mode="deep")
+    assert config["workflow_mode"] == "deep"
+    assert config["fast_mode"] is False
+    assert config["max_revision_rounds"] >= 3
+
+
 def test_storyagents_server_health_and_draft_endpoint():
     server = create_server(
         "127.0.0.1",
@@ -112,6 +126,7 @@ def test_storyagents_server_health_and_draft_endpoint():
                 {
                     "prompt": "Write a suspense story.",
                     "chapters": 1,
+                    "mode": "standard",
                     "output_language": "English",
                 }
             ).encode("utf-8"),
@@ -125,6 +140,7 @@ def test_storyagents_server_health_and_draft_endpoint():
         assert payload["story_title"] == "A Letter from Tomorrow"
         assert payload["showrunner_status"] == "Complete"
         assert payload["chapters"] == ["A storm letter arrives."]
+        assert payload["workflow_mode"] == "standard"
         assert cors == "*"
 
         with urlopen(f"http://127.0.0.1:{port}/h5/", timeout=5) as response:
@@ -153,7 +169,9 @@ def test_story_updates_and_continuation_persist(tmp_path, monkeypatch):
     try:
         draft_request = Request(
             f"http://127.0.0.1:{port}/api/storyagents/draft",
-            data=json.dumps({"prompt": "Write a suspense story.", "chapters": 1}).encode("utf-8"),
+            data=json.dumps(
+                {"prompt": "Write a suspense story.", "chapters": 1, "mode": "deep"}
+            ).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
@@ -204,6 +222,12 @@ def test_story_updates_and_continuation_persist(tmp_path, monkeypatch):
         assert "An edited storm letter arrives." in final_payload["final_manuscript"]
         assert "Continuation chapter 1" in final_payload["final_manuscript"]
         assert final_payload["_updated_at"]
+        assert final_payload["_workflow_mode"] == "deep"
+
+        with urlopen(f"http://127.0.0.1:{port}/api/storyagents/stories", timeout=5) as response:
+            stories = json.loads(response.read().decode("utf-8"))
+
+        assert stories[0]["mode"] == "deep"
     finally:
         server.shutdown()
         server.server_close()

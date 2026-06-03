@@ -1,34 +1,35 @@
-# 墨神 (Mo-Shen)
+# 墨神 Mo-Shen
 
-多智能体协作小说生成框架，四个专职 AI 智能体接力完成从创意到成稿的全流程。
+多智能体小说创作工作台。`Mo-Shen` 把灵感整理、世界观设定、角色设计、章节写作、连续性审校和成稿导出串成一条可持续推进的创作链路。
 
-## 架构
+## 项目预览
 
-墨神基于 [LangGraph](https://github.com/langchain-ai/langgraph) 构建，通过 4 个专职智能体的流水线协作生成小说：
+![墨神首页](docs/assets/homepage.png)
 
-```
-策划编辑 → 剧情架构师 → 章节写手 → 总编
-```
+![墨神工作台](docs/assets/studio.png)
 
-| 智能体 | 职责 |
-|--------|------|
-| **策划编辑** | 将创意灵感压缩为明确、可执行的创作需求 |
-| **剧情架构师** | 生成章节节拍，确保故事持续前进 |
-| **章节写手** | 扩写为正文，让人物真正开口与行动 |
-| **总编** | 最终拍板，决定通过、续章或返工 |
+## 现在能做什么
 
-## 功能
+- 三档工作流模式：`快速出稿`、`标准创作`、`深度打磨`
+- 多智能体协作生成：策划、世界观、角色、章节、审校、总编分工推进
+- 流式创作过程展示：实时看到每个智能体的输出和章节推进
+- 故事项目持久化：生成、编辑、续写都会回写到同一个故事项目
+- 历史项目管理：查看、续写、导出、删除
+- 文本局部编辑：改写、扩写、压缩、润色后可直接保存回故事
+- 成稿导出：`TXT` / `DOCX`
+- 多模型兼容：DeepSeek、OpenAI、Anthropic、Google 等兼容 OpenAI 风格接口的后端
 
-- 多智能体流水线协作生成小说
-- 支持 DeepSeek、OpenAI、Anthropic、Google 等多种 LLM 后端
-- 极速模式（fast_mode）四段式快速出稿
-- 内置 Web 控制台，实时追踪智能体协作进度
-- 成稿支持导出 TXT / DOCX
-- 历史记录管理（查看、导出、删除）
+## 工作流模式
+
+| 模式 | 流程 | 适合场景 |
+| --- | --- | --- |
+| `quick` | Planner → Outline Agent → Chapter Writer → Showrunner | 快速试题材、试风格、先起一版 |
+| `standard` | Planner → Worldbuilder → Character Designer → Outline Agent → Chapter Writer → Showrunner | 中篇、连载、需要更完整设定支撑 |
+| `deep` | Planner → Worldbuilder → Character Designer → Outline Agent → Chapter Writer → Continuity Reviewer → Showrunner | 长篇、伏笔密集、人设一致性要求高 |
 
 ## 快速开始
 
-### 安装
+### 1. 安装
 
 ```bash
 git clone https://github.com/wwxxzz666/Mo-Shen.git
@@ -36,66 +37,76 @@ cd Mo-Shen
 pip install -e .
 ```
 
-### 配置
+### 2. 配置
 
-创建 `.env` 文件，填入你的 LLM API Key：
+创建 `.env` 文件，填入你的模型服务配置，例如：
 
+```env
+DEEPSEEK_API_KEY=sk-xxxx
 ```
-DEEPSEEK_API_KEY=sk-xxxxxxxx
+
+也可以通过环境变量覆盖默认配置：
+
+```env
+STORYAGENTS_LLM_PROVIDER=deepseek
+STORYAGENTS_DEEP_THINK_LLM=deepseek-chat
+STORYAGENTS_QUICK_THINK_LLM=deepseek-chat
+STORYAGENTS_WORKFLOW_MODE=standard
+STORYAGENTS_OUTPUT_LANGUAGE=Chinese
 ```
 
-默认使用 DeepSeek，也可切换为 OpenAI、Anthropic 等其他提供商。
-
-### 启动 Web 服务
+### 3. 启动 Web 工作台
 
 ```bash
-python -m storyagents.cli serve --port 8000
+python -m storyagents.cli serve --port 8000 --mode standard
 ```
 
-浏览器打开 `http://localhost:8000` 即可使用。
+打开 [http://127.0.0.1:8000/h5/](http://127.0.0.1:8000/h5/)。
 
-### 命令行生成
+### 4. 命令行生成
 
 ```bash
-python -m storyagents.cli generate "写一个发生在海上记忆之城的悬疑小说"
+python -m storyagents.cli draft \
+  --prompt "写一个发生在海上记忆之城的悬疑故事" \
+  --chapters 3 \
+  --mode deep
 ```
 
-### 运行测试
+## 常用命令
 
 ```bash
-pip install pytest
-python -m pytest tests/ -v
+python -m storyagents.cli serve --port 8000 --mode quick
+python -m storyagents.cli serve --port 8000 --mode standard
+python -m storyagents.cli serve --port 8000 --mode deep
+python -m pytest tests/test_storyagents_server.py -q
 ```
 
-## 技术栈
+## Web 工作台亮点
 
-- **Python 3.10+**
-- **LangChain / LangGraph** — 多智能体编排框架
-- **Pydantic** — 数据校验
-- **Typer** — CLI 框架
-- **Vanilla HTML/CSS/JS** — 前端控制台
-- **docx.js** — 浏览器端 DOCX 生成
+- 黑金液态玻璃风格首页和创作工作台
+- 模式切换会同步改变智能体流程和可见产物标签
+- 历史卡片可直接续写已有项目
+- 续写后章节会并回原故事，不再生成孤立结果
 
 ## 项目结构
 
-```
+```text
 storyagents/
-├── agents/            # 各专职智能体实现
-│   ├── planning/      # 策划编辑
-│   ├── outlining/     # 剧情架构师
-│   ├── writing/       # 章节写手
-│   ├── management/    # 总编
-│   ├── worldbuilding/ # 世界观构建（标准模式）
-│   ├── characters/    # 角色设计（标准模式）
-│   └── review/        # 审稿（标准模式）
-├── graph/             # LangGraph 图定义与编排
-├── llm_clients/       # 多 LLM 后端适配层
-├── h5/                # Web 控制台前端
-├── cli.py             # 命令行入口
-├── server.py          # HTTP 服务器
-├── schemas.py         # 数据模型
-└── default_config.py  # 默认配置
+├─ agents/               # 各类智能体实现
+├─ graph/                # LangGraph 编排与传播
+├─ h5/                   # Web 前端
+├─ llm_clients/          # 模型客户端适配
+├─ cli.py                # CLI 入口
+├─ server.py             # HTTP 服务与 API
+└─ default_config.py     # 默认配置与环境变量映射
+tests/
+PRODUCT_ROADMAP.md
+RELEASE_NOTES.md
 ```
+
+## 最近更新
+
+最新改动见 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
 
 ## License
 

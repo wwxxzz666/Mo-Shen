@@ -5,6 +5,64 @@ const AGENTS = [
   { name: "总编", role: "最终拍板，决定通过、续章或返工。" },
 ];
 
+const AGENT_LIBRARY = {
+  "Planner": { name: "策划编辑", role: "把你的灵感压缩成一份明确、可执行的创作需求。" },
+  "Worldbuilder": { name: "世界观设计师", role: "补齐世界规则、氛围母题和叙事约束，让故事更稳。" },
+  "Character Designer": { name: "角色设计师", role: "整理主角弧线、关系张力和人物说话方式。" },
+  "Outline Agent": { name: "剧情架构师", role: "生成章节节拍，确保故事持续向前推进。" },
+  "Chapter Writer": { name: "章节写手", role: "扩写为正文，让人物真正开口与行动。" },
+  "Continuity Reviewer": { name: "连续性审校", role: "检查设定、人设和伏笔是否前后一致。" },
+  "Showrunner": { name: "总编", role: "最后拍板，决定通过、返工或继续打磨。" },
+};
+
+const WORKFLOW_MODES = {
+  quick: {
+    label: "快速出稿",
+    chip: "4 节点",
+    summary: "直接从 brief 到章节出稿，适合试题材、试节奏和快速起篇。",
+    logIntro: "当前是「快速出稿」模式，会走四段式创作流程，优先把故事尽快成形。",
+    agents: ["Planner", "Outline Agent", "Chapter Writer", "Showrunner"],
+    artifacts: ["storyBrief", "outline", "chapter", "manuscript"],
+    phases: [
+      { label: "正在整理创作需求...", target: 16 },
+      { label: "正在规划章节大纲...", target: 42 },
+      { label: "正在撰写正文初稿...", target: 78 },
+      { label: "正在收束并生成成稿...", target: 96 },
+    ],
+  },
+  standard: {
+    label: "标准创作",
+    chip: "6 节点",
+    summary: "补齐世界观和角色层，再进入大纲与正文，更适合中篇和稳定连载。",
+    logIntro: "当前是「标准创作」模式，会先补设定和角色，再推进大纲与正文。",
+    agents: ["Planner", "Worldbuilder", "Character Designer", "Outline Agent", "Chapter Writer", "Showrunner"],
+    artifacts: ["storyBrief", "world", "characters", "outline", "chapter", "manuscript"],
+    phases: [
+      { label: "正在整理创作需求...", target: 12 },
+      { label: "正在扩展世界观与角色设定...", target: 38 },
+      { label: "正在规划章节大纲...", target: 62 },
+      { label: "正在撰写正文初稿...", target: 86 },
+      { label: "正在汇总并整理成稿...", target: 96 },
+    ],
+  },
+  deep: {
+    label: "深度打磨",
+    chip: "7 节点",
+    summary: "在标准模式上加入连续性审校，更适合长篇、伏笔密集和一致性要求高的项目。",
+    logIntro: "当前是「深度打磨」模式，会额外加入连续性审校，优先保证人设与设定稳定。",
+    agents: ["Planner", "Worldbuilder", "Character Designer", "Outline Agent", "Chapter Writer", "Continuity Reviewer", "Showrunner"],
+    artifacts: ["storyBrief", "world", "characters", "outline", "chapter", "manuscript"],
+    phases: [
+      { label: "正在整理创作需求...", target: 10 },
+      { label: "正在扩展世界观与角色设定...", target: 34 },
+      { label: "正在规划章节大纲...", target: 58 },
+      { label: "正在撰写正文初稿...", target: 80 },
+      { label: "正在进行连续性审校...", target: 92 },
+      { label: "正在整理最终成稿...", target: 96 },
+    ],
+  },
+};
+
 /* ---- Style Presets ---- */
 const STYLE_PRESETS = {
   wuxia: {
@@ -59,6 +117,7 @@ const state = {
   activeArtifact: "storyBrief",
   title: "",
   storyId: null,
+  mode: "quick",
   chapters: [],
   chapterSummaries: [],
   continuityNotes: "",
@@ -68,6 +127,8 @@ const form = document.querySelector("#story-form");
 const promptInput = document.querySelector("#prompt");
 const chapterSlider = document.querySelector("#chapters");
 const chapterCount = document.querySelector("#chapter-count");
+const modeGrid = document.querySelector("#mode-grid");
+const modeSummary = document.querySelector("#mode-summary");
 const chips = Array.from(document.querySelectorAll(".chip"));
 const submitButton = document.querySelector("#submit-button");
 const runState = document.querySelector("#run-state");
@@ -84,6 +145,69 @@ const progressTitle = document.querySelector("#progress-title");
 
 let progressTimer = null;
 let progressValue = 0;
+
+function normalizeWorkflowMode(mode) {
+  return Object.prototype.hasOwnProperty.call(WORKFLOW_MODES, mode) ? mode : "quick";
+}
+
+function getWorkflowConfig(mode = state.mode) {
+  return WORKFLOW_MODES[normalizeWorkflowMode(mode)];
+}
+
+function getActiveAgents(mode = state.mode) {
+  return getWorkflowConfig(mode).agents.map((node) => ({ node, ...AGENT_LIBRARY[node] }));
+}
+
+function getNodeToAgentMap(mode = state.mode) {
+  return getWorkflowConfig(mode).agents.reduce((acc, node, index) => {
+    acc[node] = index;
+    return acc;
+  }, {});
+}
+
+function getVisibleArtifactDefs(mode = state.mode) {
+  const visibleKeys = new Set(getWorkflowConfig(mode).artifacts);
+  return ARTIFACT_DEFS.filter((artifact) => visibleKeys.has(artifact.key));
+}
+
+function updateWorkflowModeUi() {
+  const mode = normalizeWorkflowMode(state.mode);
+  const config = getWorkflowConfig(mode);
+  if (modeSummary) {
+    modeSummary.textContent = `${config.label} · ${config.summary}`;
+  }
+  if (modeGrid) {
+    modeGrid.querySelectorAll(".mode-card").forEach((card) => {
+      const isActive = card.dataset.mode === mode;
+      card.classList.toggle("is-selected", isActive);
+      const input = card.querySelector('input[type="radio"]');
+      if (input) {
+        input.checked = isActive;
+      }
+    });
+  }
+}
+
+function setWorkflowMode(mode, options = {}) {
+  const {
+    rerenderAgents = false,
+    rerenderArtifacts = false,
+    resetActivityHint = false,
+  } = options;
+  state.mode = normalizeWorkflowMode(mode);
+  updateWorkflowModeUi();
+  if (rerenderAgents) {
+    renderAgentCards();
+    resetAgentStatuses();
+  }
+  if (rerenderArtifacts) {
+    renderArtifactTabs();
+    renderArtifactContent();
+  }
+  if (resetActivityHint) {
+    resetLog();
+  }
+}
 
 const PROGRESS_PHASES = [
   { label: "正在整理创作需求...", target: 12 },
@@ -178,10 +302,10 @@ function resetProgress() {
 /* ---- Agent Cards ---- */
 function renderAgentCards() {
   agentList.innerHTML = "";
-  AGENTS.forEach((agent, index) => {
+  getActiveAgents().forEach((agent, index) => {
     const fragment = agentCardTemplate.content.cloneNode(true);
     const card = fragment.querySelector(".agent-card");
-    card.dataset.agent = agent.name;
+    card.dataset.agent = agent.node;
     fragment.querySelector(".agent-index").textContent = String(index + 1).padStart(2, "0");
     fragment.querySelector(".agent-name").textContent = agent.name;
     fragment.querySelector(".agent-role").textContent = agent.role;
@@ -226,13 +350,17 @@ function pushLog(title, message) {
 
 function resetLog() {
   activityLog.innerHTML = "";
-  pushLog("系统就绪", "当前默认是「生成小说」的极速模式，提交后会直接走四段式写作流程。");
+  pushLog("系统就绪", getWorkflowConfig().logIntro);
 }
 
 /* ---- Artifacts ---- */
 function renderArtifactTabs() {
+  const visibleArtifacts = getVisibleArtifactDefs();
+  if (!visibleArtifacts.some((artifact) => artifact.key === state.activeArtifact)) {
+    state.activeArtifact = visibleArtifacts[0]?.key || "storyBrief";
+  }
   artifactTabs.innerHTML = "";
-  ARTIFACT_DEFS.forEach((artifact) => {
+  visibleArtifacts.forEach((artifact) => {
     const button = document.createElement("button");
     button.className = `artifact-tab${artifact.key === state.activeArtifact ? " is-active" : ""}`;
     button.type = "button";
@@ -248,7 +376,12 @@ function renderArtifactTabs() {
 }
 
 function renderArtifactContent() {
-  const active = ARTIFACT_DEFS.find((item) => item.key === state.activeArtifact) || ARTIFACT_DEFS[0];
+  const visibleArtifacts = getVisibleArtifactDefs();
+  const active = visibleArtifacts.find((item) => item.key === state.activeArtifact) || visibleArtifacts[0];
+  if (!active) {
+    artifactContent.innerHTML = "";
+    return;
+  }
   const content = state.artifacts[active.key];
   const wrapper = document.createElement("div");
   wrapper.className = "artifact-card";
@@ -384,6 +517,7 @@ function normalizeApiResponse(data) {
   const chapters = Array.isArray(data.chapters) ? data.chapters : [];
   return {
     storyId: data.story_id || null,
+    workflowMode: normalizeWorkflowMode(data.workflow_mode || data._workflow_mode),
     title: data.story_title || "《未命名故事》",
     storyBrief: data.story_brief || "",
     world: data.story_bible || "",
@@ -399,6 +533,7 @@ function normalizeApiResponse(data) {
 
 function applyNormalizedStory(normalized) {
   state.storyId = normalized.storyId || state.storyId;
+  state.mode = normalizeWorkflowMode(normalized.workflowMode || state.mode);
   state.title = normalized.title;
   state.chapters = Array.isArray(normalized.chapters) ? normalized.chapters : [];
   state.chapterSummaries = Array.isArray(normalized.chapterSummaries)
@@ -413,6 +548,7 @@ function applyNormalizedStory(normalized) {
     chapter: normalized.chapter,
     manuscript: normalized.manuscript,
   };
+  updateWorkflowModeUi();
 }
 
 function replaceFirstOccurrence(source, target, replacement) {
@@ -458,24 +594,21 @@ async function persistCurrentStory() {
 }
 
 async function runApiFlow(payload) {
+  setWorkflowMode(payload.mode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
   state.artifacts = {};
   state.activeArtifact = "storyBrief";
   state.storyId = null;
   state.chapters = [];
   state.chapterSummaries = [];
   state.continuityNotes = "";
-  renderArtifactTabs();
-  renderArtifactContent();
-  resetAgentStatuses();
-  resetLog();
   switchView("studio");
   scrollToOutput();
-  startProgress("正在生成小说", PROGRESS_PHASES);
+  startProgress("正在生成小说", getWorkflowConfig().phases);
   setRunState("请求中", "is-running");
   submitButton.disabled = true;
   submitButton.textContent = "请求后端中...";
 
-  AGENTS.forEach((_, index) => {
+  getActiveAgents().forEach((_, index) => {
     if (index === 0) {
       setAgentStatus(index, "等待响应", "active");
     }
@@ -491,6 +624,7 @@ async function runApiFlow(payload) {
         tone: payload.tone,
         audience: payload.audience,
         chapters: Number(payload.chapters),
+        mode: payload.mode,
       }),
     });
 
@@ -525,13 +659,6 @@ async function runApiFlow(payload) {
 }
 
 /* ---- Streaming API Flow ---- */
-const NODE_TO_AGENT = {
-  "Planner": 0,
-  "Outline Agent": 1,
-  "Chapter Writer": 2,
-  "Showrunner": 3,
-};
-
 let currentAbortController = null;
 
 /* ---- Chat Message Helpers ---- */
@@ -617,15 +744,15 @@ function clearChat() {
 }
 
 async function runApiFlowStream(payload) {
+  setWorkflowMode(payload.mode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
   state.artifacts = {};
   state.activeArtifact = "storyBrief";
   state.storyId = null;
   state.chapters = [];
   state.chapterSummaries = [];
   state.continuityNotes = "";
-  resetAgentStatuses();
   switchView("studio");
-  startProgress("生成中", PROGRESS_PHASES);
+  startProgress("生成中", getWorkflowConfig().phases);
   setRunState("生成中", "is-running");
   submitButton.disabled = true;
   submitButton.textContent = "生成中...";
@@ -653,6 +780,7 @@ async function runApiFlowStream(payload) {
         tone: payload.tone,
         audience: payload.audience,
         chapters: Number(payload.chapters),
+        mode: payload.mode,
       }),
       signal: currentAbortController.signal,
     });
@@ -687,11 +815,11 @@ async function runApiFlowStream(payload) {
             const { node, data } = event;
 
             // Update agent status
-            const agentIndex = NODE_TO_AGENT[node];
+            const agentIndex = getNodeToAgentMap()[node];
             if (agentIndex !== undefined) {
               setAgentStatus(agentIndex, "已完成", "done");
               const nextIndex = agentIndex + 1;
-              if (nextIndex < AGENTS.length) {
+              if (nextIndex < getActiveAgents().length) {
                 setAgentStatus(nextIndex, "工作中", "active");
               }
             }
@@ -706,7 +834,7 @@ async function runApiFlowStream(payload) {
 
             // Add chat message for node completion
             const nodeDesc = getNodeDescription(node);
-            addChatMessage("agent", node, nodeDesc);
+            addChatMessage("agent", AGENT_LIBRARY[node]?.name || node, nodeDesc);
 
             // If there's a chapter draft, add it as a chapter message
             if (data.current_chapter_draft && node === "Chapter Writer") {
@@ -756,6 +884,9 @@ async function runApiFlowStream(payload) {
           if (event.event === "story_saved") {
             if (event.data?.story_id) {
               state.storyId = event.data.story_id;
+            }
+            if (event.data?.workflow_mode) {
+              setWorkflowMode(event.data.workflow_mode);
             }
             loadHistory();
           }
@@ -832,6 +963,7 @@ function readForm() {
     genre: String(formData.get("genre") || "").trim(),
     tone: String(formData.get("tone") || "").trim(),
     audience: String(formData.get("audience") || "").trim(),
+    mode: normalizeWorkflowMode(formData.get("workflow_mode") || state.mode),
     chapters: String(formData.get("chapters") || "3"),
   };
 }
@@ -852,6 +984,11 @@ function hydrateStoredForm() {
       chapterSlider.value = data.chapters;
       chapterCount.textContent = `${data.chapters} 章`;
     }
+    if (data.mode) {
+      setWorkflowMode(data.mode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
+    } else {
+      updateWorkflowModeUi();
+    }
   } catch (error) {
     console.warn("保存的墨神表单解析失败", error);
   }
@@ -861,6 +998,18 @@ function bootstrap() {
   chapterSlider.addEventListener("input", (event) => {
     chapterCount.textContent = `${event.target.value} 章`;
   });
+
+  if (modeGrid) {
+    modeGrid.querySelectorAll(".mode-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        setWorkflowMode(card.dataset.mode, {
+          rerenderAgents: true,
+          rerenderArtifacts: true,
+          resetActivityHint: true,
+        });
+      });
+    });
+  }
 
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
@@ -928,6 +1077,7 @@ function bootstrap() {
   renderArtifactContent();
   resetLog();
   resetProgress();
+  updateWorkflowModeUi();
   hydrateStoredForm();
   loadHistory();
   initEditToolbar();
@@ -969,6 +1119,7 @@ function renderHistory(stories) {
       <div class="history-card-footer">
         <div class="history-meta">
           <span>${escapeHtml(s.genre || "")}</span>
+          <span>${escapeHtml(getWorkflowConfig(s.mode || "quick").label)}</span>
           <span>${s.chapters || 0} 章</span>
         </div>
         <div class="history-actions">
@@ -1094,7 +1245,21 @@ async function continueStory(id) {
     return;
   }
 
+  let continuationMode = state.mode;
+  try {
+    const storyResponse = await fetch(`/api/storyagents/stories/${encodeURIComponent(id)}`);
+    if (storyResponse.ok) {
+      const storyData = await storyResponse.json();
+      continuationMode = normalizeWorkflowMode(
+        storyData.workflow_mode || storyData._workflow_mode || continuationMode,
+      );
+    }
+  } catch (error) {
+    console.warn("读取故事模式失败，继续沿用当前模式。", error);
+  }
+
   // Switch to studio view
+  setWorkflowMode(continuationMode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
   switchView("studio");
   state.storyId = id;
   state.artifacts = {};
@@ -1102,11 +1267,7 @@ async function continueStory(id) {
   state.chapters = [];
   state.chapterSummaries = [];
   state.continuityNotes = "";
-  renderArtifactTabs();
-  renderArtifactContent();
-  resetAgentStatuses();
-  resetLog();
-  startProgress("正在续写小说", PROGRESS_PHASES);
+  startProgress("正在续写小说", getWorkflowConfig().phases);
   setRunState("续写中", "is-running");
 
   pushLog("开始续写", `正在续写故事，计划生成 ${chapters} 章...`);
@@ -1118,6 +1279,7 @@ async function continueStory(id) {
       body: JSON.stringify({
         story_id: id,
         continue_chapters: chapters,
+        mode: continuationMode,
       }),
     });
 
@@ -1151,11 +1313,11 @@ async function continueStory(id) {
             const { node, data } = event;
 
             // Update agent status
-            const agentIndex = NODE_TO_AGENT[node];
+            const agentIndex = getNodeToAgentMap()[node];
             if (agentIndex !== undefined) {
               setAgentStatus(agentIndex, "已完成", "done");
               const nextIndex = agentIndex + 1;
-              if (nextIndex < AGENTS.length) {
+              if (nextIndex < getActiveAgents().length) {
                 setAgentStatus(nextIndex, "工作中", "active");
               }
             }
@@ -1190,7 +1352,7 @@ async function continueStory(id) {
               setProgress(progress, `正在续写第 ${currentChapter}/${targetChapters} 章...`);
             }
 
-            pushLog(`${node} 完成`, getNodeDescription(node));
+            pushLog(`${AGENT_LIBRARY[node]?.name || node} 完成`, getNodeDescription(node));
             renderArtifactTabs();
             renderArtifactContent();
           }
@@ -1206,6 +1368,13 @@ async function continueStory(id) {
                 card.querySelector(".agent-status").textContent = "已完成";
               }
             });
+          }
+
+          if (event.event === "story_saved") {
+            if (event.data?.workflow_mode) {
+              setWorkflowMode(event.data.workflow_mode);
+            }
+            loadHistory();
           }
 
           if (event.error) {

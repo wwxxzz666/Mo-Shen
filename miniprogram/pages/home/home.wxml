@@ -1,0 +1,132 @@
+<!-- 
+  导航首页 - 液态玻璃风格
+-->
+<view class="container">
+  <!-- 背景装饰 -->
+  <view class="bg-glow glow-1"></view>
+  <view class="bg-glow glow-2"></view>
+  <view class="bg-glow glow-3"></view>
+  <view class="bg-grid"></view>
+
+  <!-- 顶部品牌区域 -->
+  <view class="hero-section">
+    <view class="logo-wrap">
+      <view class="logo-ring"></view>
+      <text class="hero-logo">墨</text>
+    </view>
+    <text class="hero-title">墨神</text>
+    <text class="hero-subtitle">Story Operating Room</text>
+    <text class="hero-desc">
+      从故事 brief、大纲、角色到章节成稿，多智能体协作让灵感成形。
+    </text>
+  </view>
+
+  <!-- 主要功能入口 -->
+  <view class="nav-grid">
+    <!-- 开始创作 -->
+    <view class="nav-card glass-card glass-card-gold" bindtap="goToCreate">
+      <view class="nav-card-inner">
+        <view class="nav-icon-wrap">
+          <view class="nav-icon-glow"></view>
+          <text class="nav-icon">✍️</text>
+        </view>
+        <view class="nav-content">
+          <text class="nav-title">开始创作</text>
+          <text class="nav-desc">描述你的故事需求，AI 智能体帮你完成创作</text>
+        </view>
+        <view class="nav-arrow-wrap">
+          <text class="nav-arrow">→</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 历史项目 -->
+    <view class="nav-card glass-card" bindtap="goToHistory">
+      <view class="nav-card-inner">
+        <view class="nav-icon-wrap">
+          <view class="nav-icon-glow"></view>
+          <text class="nav-icon">📚</text>
+        </view>
+        <view class="nav-content">
+          <text class="nav-title">历史项目</text>
+          <text class="nav-desc">查看和管理你之前创作的故事</text>
+        </view>
+        <view class="nav-arrow-wrap">
+          <text class="nav-arrow">→</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 智能体介绍 -->
+    <view class="nav-card glass-card" bindtap="goToAgents">
+      <view class="nav-card-inner">
+        <view class="nav-icon-wrap">
+          <view class="nav-icon-glow"></view>
+          <text class="nav-icon">🤖</text>
+        </view>
+        <view class="nav-content">
+          <text class="nav-title">智能体介绍</text>
+          <text class="nav-desc">了解6大AI智能体如何协作创作</text>
+        </view>
+        <view class="nav-arrow-wrap">
+          <text class="nav-arrow">→</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 智能体预览 -->
+  <view class="section-block">
+    <text class="section-title">AI 智能体团队</text>
+    <scroll-view scroll-x="true" class="agents-scroll">
+      <view class="agents-row">
+        <view class="agent-badge glass-card" wx:for="{{agents}}" wx:key="name">
+          <text class="agent-badge-icon">{{item.icon}}</text>
+          <text class="agent-badge-name">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 特性亮点 -->
+  <view class="section-block">
+    <text class="section-title">核心特性</text>
+    <view class="features-grid">
+      <view class="feature-item glass-card">
+        <view class="feature-icon-wrap">
+          <text class="feature-icon">⚡</text>
+        </view>
+        <text class="feature-name">多智能体协作</text>
+        <text class="feature-desc">6个专业AI角色分工明确</text>
+      </view>
+      <view class="feature-item glass-card">
+        <view class="feature-icon-wrap">
+          <text class="feature-icon">📖</text>
+        </view>
+        <text class="feature-name">完整故事生成</text>
+        <text class="feature-desc">从大纲到章节一键完成</text>
+      </view>
+      <view class="feature-item glass-card">
+        <view class="feature-icon-wrap">
+          <text class="feature-icon">💾</text>
+        </view>
+        <text class="feature-name">导出功能</text>
+        <text class="feature-desc">支持 TXT / DOCX 格式</text>
+      </view>
+      <view class="feature-item glass-card">
+        <view class="feature-icon-wrap">
+          <text class="feature-icon">🔄</text>
+        </view>
+        <text class="feature-name">实时进度</text>
+        <text class="feature-desc">流式展示创作全过程</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部信息 -->
+  <view class="footer">
+    <view class="divider-glass"></view>
+    <text class="footer-text">基于 LangGraph 多智能体框架</text>
+    <text class="footer-version">v1.0.0</text>
+  </view>
+</view>

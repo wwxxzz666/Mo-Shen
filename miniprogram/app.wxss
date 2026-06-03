@@ -1,0 +1,204 @@
+/**
+ * 全局样式 - 液态玻璃风格
+ * 所有页面共享的变量和基础样式
+ */
+
+/* 页面基础 */
+page {
+  background: #0a0a14;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 液态玻璃卡片 - 通用 */
+.glass-card {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 24rpx;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 玻璃光泽效果 */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 215, 0, 0.03) 0%,
+    transparent 70%
+  );
+  animation: glassShimmer 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes glassShimmer {
+  0%, 100% { transform: translate(-30%, -30%) rotate(0deg); }
+  50% { transform: translate(30%, 30%) rotate(180deg); }
+}
+
+/* 金色高光边框 */
+.glass-card-gold {
+  border: 1rpx solid rgba(255, 215, 0, 0.2);
+  box-shadow: 
+    0 0 30rpx rgba(255, 215, 0, 0.05),
+    inset 0 0 30rpx rgba(255, 215, 0, 0.02);
+}
+
+/* 按钮样式 */
+.btn-glass {
+  background: linear-gradient(135deg, 
+    rgba(255, 215, 0, 0.2) 0%, 
+    rgba(255, 215, 0, 0.1) 100%
+  );
+  border: 1rpx solid rgba(255, 215, 0, 0.3);
+  border-radius: 16rpx;
+  color: #ffd700;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-glass::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 215, 0, 0.1), 
+    transparent
+  );
+  animation: btnShimmer 3s ease-in-out infinite;
+}
+
+@keyframes btnShimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* 主按钮 */
+.btn-primary-glass {
+  background: linear-gradient(135deg, 
+    #ffd700 0%, 
+    #ffed4e 50%,
+    #ffd700 100%
+  );
+  color: #0a0a14;
+  font-weight: bold;
+  box-shadow: 
+    0 4rpx 20rpx rgba(255, 215, 0, 0.3),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1rpx 0 rgba(255, 255, 255, 0.3);
+}
+
+/* 输入框玻璃效果 */
+.input-glass {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 12rpx;
+  color: #ffffff;
+  backdrop-filter: blur(10px);
+}
+
+.input-glass:focus {
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 20rpx rgba(255, 215, 0, 0.1);
+}
+
+/* 发光文字 */
+.text-glow {
+  text-shadow: 0 0 20rpx rgba(255, 215, 0, 0.5);
+}
+
+/* 进度条玻璃效果 */
+.progress-glass {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10rpx;
+  overflow: hidden;
+}
+
+.progress-glass-fill {
+  background: linear-gradient(90deg, 
+    rgba(255, 215, 0, 0.8) 0%, 
+    rgba(255, 237, 78, 0.9) 50%,
+    rgba(255, 215, 0, 0.8) 100%
+  );
+  box-shadow: 0 0 15rpx rgba(255, 215, 0, 0.5);
+  animation: progressGlow 2s ease-in-out infinite;
+}
+
+@keyframes progressGlow {
+  0%, 100% { box-shadow: 0 0 15rpx rgba(255, 215, 0, 0.5); }
+  50% { box-shadow: 0 0 25rpx rgba(255, 215, 0, 0.8); }
+}
+
+/* 标签玻璃效果 */
+.tag-glass {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1rpx solid rgba(255, 215, 0, 0.2);
+  border-radius: 20rpx;
+  color: #ffd700;
+  font-size: 22rpx;
+}
+
+/* 分割线 */
+.divider-glass {
+  height: 1rpx;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 215, 0, 0.2), 
+    transparent
+  );
+}
+
+/* 状态指示器 */
+.status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot-running {
+  background: #ffd700;
+  box-shadow: 0 0 10rpx rgba(255, 215, 0, 0.8);
+  animation: pulse 1.5s infinite;
+}
+
+.status-dot-completed {
+  background: #00ff88;
+  box-shadow: 0 0 10rpx rgba(0, 255, 136, 0.8);
+}
+
+.status-dot-pending {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+
+/* 滚动条隐藏 */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* 安全区域 */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

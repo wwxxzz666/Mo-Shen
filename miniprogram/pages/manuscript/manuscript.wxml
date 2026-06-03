@@ -1,0 +1,55 @@
+<!--
+  成稿预览页面
+  显示完整故事内容，支持复制和分享
+-->
+<view class="container">
+  <!-- 背景装饰 -->
+  <view class="bg-glow glow-1"></view>
+  <view class="bg-glow glow-2"></view>
+
+  <!-- 顶部信息 -->
+  <view class="header glass-card">
+    <view class="header-inner">
+      <view class="header-left">
+        <text class="header-icon">📖</text>
+        <view class="header-info">
+          <text class="header-title">{{storyTitle}}</text>
+          <text class="header-meta">{{genre}} · {{chapters}}章</text>
+        </view>
+      </view>
+      <view class="header-badge">
+        <text class="badge-text">已完成</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成稿内容 -->
+  <view class="manuscript-section glass-card">
+    <view class="section-header">
+      <text class="section-title">📝 最终成稿</text>
+      <text class="word-count">{{wordCount}}字</text>
+    </view>
+    <scroll-view scroll-y="true" class="manuscript-scroll">
+      <view class="manuscript-content">
+        <text class="manuscript-text" user-select="true">{{manuscript}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="actions-section">
+    <button class="action-btn copy-btn" bindtap="copyManuscript">
+      <text class="btn-icon">📋</text>
+      <text class="btn-text">复制全文</text>
+    </button>
+    <button class="action-btn share-btn" bindtap="shareManuscript">
+      <text class="btn-icon">📤</text>
+      <text class="btn-text">分享给朋友</text>
+    </button>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer">
+    <text class="footer-tip">长按文本可选择复制部分内容</text>
+  </view>
+</view>

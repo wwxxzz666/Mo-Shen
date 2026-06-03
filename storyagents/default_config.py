@@ -11,8 +11,19 @@ _ENV_OVERRIDES = {
     "STORYAGENTS_OUTPUT_LANGUAGE": "output_language",
     "STORYAGENTS_TARGET_CHAPTERS": "target_chapters",
     "STORYAGENTS_MAX_REVISION_ROUNDS": "max_revision_rounds",
+    "STORYAGENTS_WORKFLOW_MODE": "workflow_mode",
     "STORYAGENTS_FAST_MODE": "fast_mode",
 }
+
+VALID_WORKFLOW_MODES = ("quick", "standard", "deep")
+
+
+def normalize_workflow_mode(mode) -> str:
+    if isinstance(mode, str):
+        candidate = mode.strip().lower()
+        if candidate in VALID_WORKFLOW_MODES:
+            return candidate
+    return "quick"
 
 
 def _coerce(value: str, reference):
@@ -31,6 +42,16 @@ def _apply_env_overrides(config: dict) -> dict:
         if raw is None or raw == "":
             continue
         config[key] = _coerce(raw, config.get(key))
+    workflow_mode = config.get("workflow_mode")
+    if workflow_mode in (None, "") and "STORYAGENTS_FAST_MODE" in os.environ:
+        config["workflow_mode"] = "quick" if config.get("fast_mode", True) else "deep"
+    config["workflow_mode"] = normalize_workflow_mode(config.get("workflow_mode"))
+    config["fast_mode"] = config["workflow_mode"] == "quick"
+    if config["workflow_mode"] == "deep":
+        config["max_revision_rounds"] = max(
+            int(config.get("max_revision_rounds", 2)),
+            3,
+        )
     return config
 
 
@@ -50,6 +71,7 @@ DEFAULT_STORY_CONFIG = _apply_env_overrides(
         "target_chapters": 3,
         "max_revision_rounds": 2,
         "max_recur_limit": 80,
+        "workflow_mode": "quick",
         "fast_mode": True,
     }
 )
