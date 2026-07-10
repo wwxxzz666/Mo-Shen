@@ -1698,3 +1698,47 @@ function initScrollAnimations() {
     }, 50);
   };
 }
+/* GSAP enhances the interface when it is available; core flows remain dependency-free. */
+(() => {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const enabled = () => window.gsap && !reduced;
+
+  const playHomeIntro = () => {
+    if (!enabled()) return;
+    const tl = window.gsap.timeline({ defaults: { ease: "power3.out" } });
+    tl.set("#view-home .anim-ready", { autoAlpha: 1 })
+      .fromTo(".topbar", { y: -20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55 })
+      .fromTo("#view-home .home-copy > *", { y: 28, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, stagger: 0.09 }, "<0.1")
+      .fromTo("#view-home .showcase-pane-main", { y: 32, rotation: 1.5, autoAlpha: 0 }, { y: 0, rotation: 0, autoAlpha: 1, duration: 0.85 }, "<0.12")
+      .fromTo("#view-home .showcase-pane-float", { y: 22, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, stagger: 0.12 }, "<0.35")
+      .to(".ambient-orb", { x: (i) => (i - 1) * 14, y: (i) => (i - 1) * -8, duration: 1.5, stagger: 0.08, ease: "sine.inOut" }, "<");
+  };
+
+  const enterView = (viewName) => {
+    if (!enabled()) return;
+    const view = document.querySelector(`#view-${viewName}`);
+    if (!view) return;
+    window.gsap.killTweensOf(view.querySelectorAll(".glass-panel, .view-header, .history-card"));
+    window.gsap.fromTo(view.querySelectorAll(".glass-panel, .view-header, .history-card"), { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.48, stagger: 0.055, ease: "power2.out" });
+  };
+
+  const init = () => {
+    if (!enabled()) return;
+    playHomeIntro();
+    document.querySelectorAll(".primary-button").forEach((button) => {
+      button.addEventListener("pointermove", (event) => {
+        const rect = button.getBoundingClientRect();
+        window.gsap.to(button, { x: (event.clientX - rect.left - rect.width / 2) * 0.08, y: (event.clientY - rect.top - rect.height / 2) * 0.08, duration: 0.24, ease: "power2.out", overwrite: "auto" });
+      });
+      button.addEventListener("pointerleave", () => window.gsap.to(button, { x: 0, y: 0, duration: 0.42, ease: "elastic.out(1, 0.45)", overwrite: "auto" }));
+    });
+  };
+
+  const originalSwitchView = switchView;
+  switchView = function motionAwareSwitchView(viewName) {
+    originalSwitchView(viewName);
+    enterView(viewName);
+  };
+  window.MoShenMotion = { enterView };
+  init();
+})();
