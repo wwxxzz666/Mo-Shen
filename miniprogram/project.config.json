@@ -2,7 +2,7 @@
   "miniprogramRoot": "./",
   "projectname": "mo-shen-ai-creation",
   "description": "墨神AI创作 - 多智能体小说创作工具",
-  "appid": "111",
+  "appid": "（需要自己填写）",
   "setting": {
     "urlCheck": false,
     "es6": true,
