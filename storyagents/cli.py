@@ -6,7 +6,7 @@ from typing import Optional
 import typer
 
 from storyagents.default_config import DEFAULT_STORY_CONFIG, normalize_workflow_mode
-from storyagents.graph.story_graph import StoryAgentsGraph
+from storyagents.orchestration.story_graph import StoryAgentsGraph
 from storyagents.server import serve as serve_storyagents
 
 app = typer.Typer(

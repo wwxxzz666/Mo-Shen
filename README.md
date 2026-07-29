@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-3776ab?logo=python&logoColor=white" alt="Python"></a>
-  <img src="https://img.shields.io/badge/LangGraph-0.4+-009688?logo=langchain&logoColor=white" alt="LangGraph">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white" alt="Python"></a>
+  <img src="https://img.shields.io/badge/AgentScope-2.0+-009688?logo=python&logoColor=white" alt="AgentScope">
   <img src="https://img.shields.io/badge/LLM-DeepSeek%20%7C%20OpenAI%20%7C%20Claude%20%7C%20Gemini-ff6b6b" alt="LLM">
   <img src="https://img.shields.io/badge/Platform-Web%20%7C%20%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F%20%7C%20CLI-blue" alt="Platform">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT">
@@ -24,9 +24,9 @@
 
 ---
 
-> **墨神**把"写小说"拆成了一条专业流水线:**策划 → 世界观 → 角色 → 大纲 → 写作 → 审校 → 总编**,每个环节交给一个专职 AI 智能体。它们共享同一份故事记忆,接力把你的灵感推进到成稿——而不是把所有事丢给一个模型一次写完。
+> **墨神**把「写小说」拆成了一条专业流水线：**策划 → 世界观 → 角色 → 大纲 → 写作 → 审校 → 总编**，每个环节交给一个专职 AI 智能体。它们共享同一份故事记忆，接力把你的灵感推进到成稿——而不是把所有事丢给一个模型一次写完。
 >
-> 🎬 **在线 Demo**:`Coming Soon` · ⚡ **不想等?下面 30 秒本地启动**
+> 🎬 **在线 Demo**：`Coming Soon` · ⚡ **不想等？下面 30 秒本地启动**
 
 ---
 
@@ -50,7 +50,7 @@
 
 ## ✨ 为什么是墨神
 
-市面上能"AI 写小说"的工具不少，但墨神想做的是**不一样的两件事**：① 用**多个专职 Agent 接力**，而不是单模型一把梭；② **完全开源、模型自选、可本地部署**，你的故事数据不必上传到任何人的服务器。
+市面上能「AI 写小说」的工具不少，但墨神想做的是**不一样的两件事**：① 用**多个专职 Agent 接力**，而不是单模型一把梭；② **完全开源、模型自选、可本地部署**，你的故事数据不必上传到任何人的服务器。
 
 | 能力 | 墨神 Mo-Shen | NovelAI / Sudowrite | 直接用 ChatGPT |
 | :--- | :---: | :---: | :---: |
@@ -103,7 +103,7 @@ cd Mo-Shen
 pip install -e .
 ```
 
-> 需要 Python 3.10+。
+> 需要 Python 3.11+（AgentScope 2.x 要求）。
 
 ### 2. 配置模型
 
@@ -152,8 +152,12 @@ python -m storyagents.cli draft \
 python -m storyagents.cli serve --port 8000 --mode quick
 python -m storyagents.cli serve --port 8000 --mode deep
 
-# 运行测试
-python -m pytest tests/test_storyagents_server.py -q
+# 运行单元测试
+python -m pytest tests -q
+
+# 真实 API smoke（需显式开启 + Key）
+# PowerShell: $env:STORYAGENTS_RUN_SMOKE="1"; $env:DEEPSEEK_API_KEY="sk-..."
+python -m pytest tests/test_real_api_smoke.py -m smoke -q
 ```
 </details>
 
@@ -177,17 +181,12 @@ python -m pytest tests/test_storyagents_server.py -q
 ```text
 Mo-Shen/
 ├─ storyagents/                # 核心框架
-│  ├─ agents/                  # 7 类智能体实现
-│  │  ├─ planning/             #   策划 Planner
-│  │  ├─ worldbuilding/        #   世界观 Worldbuilder
-│  │  ├─ characters/           #   角色设计 Character Designer
-│  │  ├─ outlining/            #   大纲 Outline Agent
-│  │  ├─ writing/              #   章节写作 Chapter Writer
-│  │  ├─ review/               #   连续性审校 Reviewer
-│  │  ├─ management/           #   总编 Showrunner
-│  │  └─ editing/              #   局部编辑 Editor
-│  ├─ graph/                   #   LangGraph 编排与状态传播
-│  ├─ llm_clients/             #   多厂商模型适配层
+│  ├─ orchestration/           #   AgentScope 多智能体编排（0.2+）
+│  │  ├─ roles.py              #     7 类专职创作 Agent
+│  │  ├─ editor.py             #     局部编辑 Editor
+│  │  ├─ workflow.py           #     流水线与修订/续写循环
+│  │  └─ story_graph.py        #     对外统一入口
+│  ├─ graph/                   #   兼容层（转发到 orchestration）
 │  ├─ h5/                      #   Web 工作台前端
 │  ├─ cli.py                   #   CLI 入口
 │  └─ server.py                #   HTTP 服务与 API
@@ -232,4 +231,4 @@ Mo-Shen/
 
 [MIT License](LICENSE) © 2026 wwxxzz666
 
-本项目基于 [LangGraph](https://github.com/langchain-ai/langgraph) 与 [LangChain](https://github.com/langchain-ai/langchain) 构建。
+本项目基于 [AgentScope](https://github.com/agentscope-ai/agentscope) 多智能体框架构建（v0.2+）。

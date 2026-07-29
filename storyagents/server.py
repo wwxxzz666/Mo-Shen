@@ -13,7 +13,7 @@ from typing import Any, Callable, Optional
 from urllib.parse import unquote, urlparse
 
 from storyagents.default_config import DEFAULT_STORY_CONFIG, normalize_workflow_mode
-from storyagents.graph.story_graph import StoryAgentsGraph
+from storyagents.orchestration.story_graph import StoryAgentsGraph
 
 
 H5_DIR = Path(__file__).resolve().parent / "h5"
@@ -342,8 +342,8 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
 
     def _handle_edit(self):
         try:
-            from storyagents.agents.editing.editor import create_editor
-            from storyagents.llm_clients import create_llm_client
+            from storyagents.orchestration.editor import VALID_EDIT_ACTIONS, create_editor
+            from storyagents.orchestration.models import create_chat_model
 
             payload = self._read_json_body()
             text = str(payload.get("text", "")).strip()
@@ -358,27 +358,36 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                 )
                 return
 
-            if action not in ("rewrite", "expand", "compress", "polish"):
+            if action not in VALID_EDIT_ACTIONS:
                 self._send_json(
-                    {"error": "Invalid action. Must be one of: rewrite, expand, compress, polish"},
+                    {
+                        "error": (
+                            "Invalid action. Must be one of: "
+                            + ", ".join(VALID_EDIT_ACTIONS)
+                        )
+                    },
                     status=HTTPStatus.BAD_REQUEST,
                 )
                 return
 
-            # Create LLM client for editing
             provider = payload.get("provider", DEFAULT_STORY_CONFIG["llm_provider"])
-            model = payload.get("quick_model", DEFAULT_STORY_CONFIG["quick_think_llm"])
-
-            llm_client = create_llm_client(
-                provider=provider,
-                model=model,
-                base_url=payload.get("backend_url"),
+            model_name = payload.get(
+                "quick_model",
+                DEFAULT_STORY_CONFIG["quick_think_llm"],
             )
-            llm = llm_client.get_llm()
-
-            # Create editor and run edit
-            editor = create_editor(llm)
-            result = editor(text, action=action, context=context, instruction=instruction)
+            chat_model = create_chat_model(
+                provider=provider,
+                model=model_name,
+                base_url=payload.get("backend_url"),
+                stream=False,
+            )
+            editor = create_editor(chat_model)
+            result = editor(
+                text,
+                action=action,
+                context=context,
+                instruction=instruction,
+            )
 
             self._send_json(result)
         except Exception as exc:
