@@ -1,13 +1,14 @@
 # Mo-Shen (墨神)
 
 <p align="center">
-  <strong>v0.2 · AgentScope Multi-Agent Novel Workbench</strong><br>
-  <sub>Seven specialized AI agents turn one-line sparks into finished novels</sub>
+  <strong>v2.0 · AgentScope Multi-Agent Novel Workbench</strong><br>
+  <sub>Branch <code>agentscope-mo-shen</code> · seven specialized AI agents in relay</sub>
 </p>
 
 <p align="center">
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white" alt="Python"></a>
-  <img src="https://img.shields.io/badge/version-v0.2.1-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-v2.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/branch-agentscope--mo--shen-orange" alt="Branch">
   <img src="https://img.shields.io/badge/AgentScope-2.0+-009688?logo=python&logoColor=white" alt="AgentScope">
   <img src="https://img.shields.io/badge/LLM-DeepSeek%20%7C%20OpenAI%20%7C%20Claude%20%7C%20Gemini-ff6b6b" alt="LLM">
   <img src="https://img.shields.io/badge/Platform-Web%20%7C%20WeChat%20Mini%20Program%20%7C%20CLI-blue" alt="Platform">
@@ -16,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="#-whats-new-in-v02"><b>🆕 What's New</b></a> ·
+  <a href="#-whats-new-in-v20"><b>🆕 What's New</b></a> ·
   <a href="#-quick-start"><b>🚀 Quick Start</b></a> ·
   <a href="#-agent-pipeline"><b>🤖 Architecture</b></a> ·
   <a href="#-roadmap"><b>🗺️ Roadmap</b></a> ·
@@ -25,24 +26,25 @@
 
 ---
 
-> **Mo-Shen v0.2** breaks novel writing into a professional pipeline:  
+> **Mo-Shen v2.0 (AgentScope edition)** breaks novel writing into a professional pipeline:  
 > **Planning → Worldbuilding → Characters → Outline → Writing → Review → Showrunning**.  
 > Each stage is owned by a dedicated agent sharing one story state — not a single model doing everything at once.  
 >
-> Multi-agent orchestration now runs on **[AgentScope](https://github.com/agentscope-ai/agentscope) 2.x**. CLI / Web / Mini Program APIs stay compatible.  
+> This branch runs on **[AgentScope](https://github.com/agentscope-ai/agentscope) 2.x**.  
+> Classic LangGraph edition: default branch [`main`](https://github.com/wwxxzz666/Mo-Shen/tree/main) (tag [`v1`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v1)).  
 >
-> 🏷️ Release: [v0.2.1](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v0.2.1) · ⚡ Local start in ~30 seconds below
+> 🏷️ Tag: [v2.0](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v2.0) · Branch: `agentscope-mo-shen`
 
 ---
 
-## 🆕 What's New in v0.2
+## 🆕 What's New in v2.0
 
 The headline change: **multi-agent orchestration moved from LangGraph to AgentScope**.  
 Product features (workflow modes, streaming, persistence, H5 studio) remain; the runtime stack is simpler.
 
-### v0.1 → v0.2
+### v1 (main) → v2.0 (this branch)
 
-| Area | v0.1 | v0.2 (current) |
+| Area | v1 · main (LangGraph) | v2.0 · agentscope-mo-shen |
 | :--- | :--- | :--- |
 | Orchestration | LangGraph `StateGraph` | **AgentScope** `Agent` + workflow loop |
 | Local editor | LangChain LLM calls | **AgentScope Agent** (`orchestration/editor.py`) |
@@ -194,9 +196,26 @@ Mo-Shen/
 
 ---
 
+## 🔀 Versions & Branches
+
+| Version | Branch | Tag | Notes |
+| :--- | :--- | :--- | :--- |
+| **v1** | [`main`](https://github.com/wwxxzz666/Mo-Shen/tree/main) | [`v1`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v1) | Classic LangGraph edition (default) |
+| **v2.0** | [`agentscope-mo-shen`](https://github.com/wwxxzz666/Mo-Shen/tree/agentscope-mo-shen) | [`v2.0`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v2.0) | AgentScope edition (this branch) |
+
+```bash
+# v1 (default)
+git clone https://github.com/wwxxzz666/Mo-Shen.git
+
+# v2.0 AgentScope
+git clone -b agentscope-mo-shen https://github.com/wwxxzz666/Mo-Shen.git
+```
+
+---
+
 ## 📄 License
 
 [MIT License](LICENSE) © 2026 wwxxzz666
 
-**v0.2+** is built on [AgentScope](https://github.com/agentscope-ai/agentscope).  
-Earlier releases used LangGraph / LangChain, removed in v0.2.
+**v2.0 (this branch)** is built on [AgentScope](https://github.com/agentscope-ai/agentscope).  
+**v1 (main)** uses LangGraph / LangChain.

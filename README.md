@@ -1,13 +1,14 @@
 # 墨神 Mo-Shen
 
 <p align="center">
-  <strong>v0.2 · AgentScope 多智能体小说创作工作台</strong><br>
-  <sub>7 个专职 AI 智能体接力协作，把你的一句话灵感写成完整小说</sub>
+  <strong>v2.0 · AgentScope 多智能体小说创作工作台</strong><br>
+  <sub>分支 <code>agentscope-mo-shen</code> · 7 个专职 AI 智能体接力协作</sub>
 </p>
 
 <p align="center">
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white" alt="Python"></a>
-  <img src="https://img.shields.io/badge/version-v0.2.1-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-v2.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/branch-agentscope--mo--shen-orange" alt="Branch">
   <img src="https://img.shields.io/badge/AgentScope-2.0+-009688?logo=python&logoColor=white" alt="AgentScope">
   <img src="https://img.shields.io/badge/LLM-DeepSeek%20%7C%20OpenAI%20%7C%20Claude%20%7C%20Gemini-ff6b6b" alt="LLM">
   <img src="https://img.shields.io/badge/Platform-Web%20%7C%20%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F%20%7C%20CLI-blue" alt="Platform">
@@ -16,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="#-v02-更新了什么"><b>🆕 版本更新</b></a> ·
+  <a href="#-v20-更新了什么"><b>🆕 版本更新</b></a> ·
   <a href="#-快速开始"><b>🚀 快速开始</b></a> ·
   <a href="#-智能体流水线"><b>🤖 架构</b></a> ·
   <a href="#-路线图"><b>🗺️ 路线图</b></a> ·
@@ -25,23 +26,24 @@
 
 ---
 
-> **墨神 v0.2** 把「写小说」拆成专业流水线：**策划 → 世界观 → 角色 → 大纲 → 写作 → 审校 → 总编**。  
+> **墨神 v2.0（AgentScope 版）** 把「写小说」拆成专业流水线：**策划 → 世界观 → 角色 → 大纲 → 写作 → 审校 → 总编**。  
 > 每个环节由专职 AI 智能体负责，共享同一份故事状态，接力推进到成稿——而不是把所有事丢给一个模型一次写完。  
 >
-> 本版本多智能体编排已切换为 **[AgentScope](https://github.com/agentscope-ai/agentscope) 2.x**，CLI / Web / 小程序接口保持兼容。  
+> 本分支多智能体编排使用 **[AgentScope](https://github.com/agentscope-ai/agentscope) 2.x**。  
+> 经典 LangGraph 版见默认分支 [`main`](https://github.com/wwxxzz666/Mo-Shen/tree/main)（标签 [`v1`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v1)）。  
 >
-> 🏷️ 发布标签：[v0.2.1](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v0.2.1) · ⚡ 不想等？下面 30 秒本地启动
+> 🏷️ 本分支标签：[v2.0](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v2.0) · 分支：`agentscope-mo-shen` · ⚡ 30 秒本地启动见下方
 
 ---
 
-## 🆕 v0.2 更新了什么
+## 🆕 v2.0 更新了什么
 
 这一版的核心变化是：**多智能体协作引擎从 LangGraph 全面迁移到 AgentScope**。  
 产品能力（三档模式、流式输出、持久化、H5 工作台）继续保留，底层编排与依赖大幅简化。
 
-### 相对 v0.1 的主要变更
+### 相对 v1（main）的主要变更
 
-| 模块 | v0.1（旧） | v0.2（当前） |
+| 模块 | v1 · main（LangGraph） | v2.0 · agentscope-mo-shen |
 | :--- | :--- | :--- |
 | 多 Agent 编排 | LangGraph `StateGraph` | **AgentScope** `Agent` + 工作流循环 |
 | 局部编辑 Editor | LangChain LLM 调用 | **AgentScope Agent**（`orchestration/editor.py`） |
@@ -139,7 +141,7 @@ flowchart LR
 | 🎯 `standard` 标准创作 | + Worldbuilder + Character Designer | 中篇 / 连载，需要完整设定 |
 | 💎 `deep` 深度打磨 | + Continuity Reviewer，提高修订轮次 | 长篇、伏笔密集、人设一致性要求高 |
 
-### v0.2 技术架构（简图）
+### v2.0 技术架构（简图）
 
 ```text
 用户请求
@@ -253,7 +255,7 @@ python -m pytest tests/test_real_api_smoke.py -m smoke -q
 ```text
 Mo-Shen/
 ├─ storyagents/
-│  ├─ orchestration/           # v0.2 核心：AgentScope 编排
+│  ├─ orchestration/           # v2.0 核心：AgentScope 编排
 │  │  ├─ roles.py              #   7 类创作 Agent
 │  │  ├─ editor.py             #   局部编辑
 │  │  ├─ workflow.py           #   流水线与修订/续写循环
@@ -275,7 +277,7 @@ Mo-Shen/
 
 项目持续迭代（详见 [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md)）：
 
-- ✅ **v0.2 AgentScope 编排迁移**
+- ✅ **v2.0 AgentScope 编排迁移**（本分支）
 - ✅ 三档工作流（quick / standard / deep）
 - ✅ 故事持久化（编辑回写、续写合并）
 - ✅ 黑金液态玻璃 UI
@@ -286,6 +288,23 @@ Mo-Shen/
 - 🔜 作者模板库 — 题材 / 节奏 / 角色模板一键复用  
 
 > 想要某个功能？欢迎 [提 Issue](https://github.com/wwxxzz666/Mo-Shen/issues) 👋
+
+---
+
+## 🔀 版本与分支
+
+| 版本 | 分支 | 标签 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **v1** | [`main`](https://github.com/wwxxzz666/Mo-Shen/tree/main) | [`v1`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v1) | 经典 LangGraph 版（默认展示） |
+| **v2.0** | [`agentscope-mo-shen`](https://github.com/wwxxzz666/Mo-Shen/tree/agentscope-mo-shen) | [`v2.0`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v2.0) | AgentScope 版（本分支） |
+
+```bash
+# 使用 v1（默认 main）
+git clone https://github.com/wwxxzz666/Mo-Shen.git
+
+# 使用 v2.0 AgentScope 版
+git clone -b agentscope-mo-shen https://github.com/wwxxzz666/Mo-Shen.git
+```
 
 ---
 
@@ -303,5 +322,5 @@ Mo-Shen/
 
 [MIT License](LICENSE) © 2026 wwxxzz666
 
-**v0.2+** 基于 [AgentScope](https://github.com/agentscope-ai/agentscope) 多智能体框架构建。  
-更早版本曾使用 LangGraph / LangChain，已在 v0.2 中移除。
+**v2.0（本分支）** 基于 [AgentScope](https://github.com/agentscope-ai/agentscope) 构建。  
+**v1（main）** 基于 LangGraph / LangChain。
