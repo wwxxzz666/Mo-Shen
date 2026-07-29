@@ -172,7 +172,7 @@ python -m storyagents.cli draft \
 ```text
 Mo-Shen/
 ├─ storyagents/
-│  ├─ orchestration/     # AgentScope multi-agent core (v0.2+)
+│  ├─ orchestration/     # AgentScope multi-agent core (v2.0)
 │  ├─ graph/             # Compatibility re-export
 │  ├─ h5/                # Web studio
 │  ├─ cli.py
@@ -186,7 +186,7 @@ Mo-Shen/
 
 ## 🗺️ Roadmap
 
-- ✅ **v0.2 AgentScope migration**
+- ✅ **v2.0 AgentScope migration** (this branch)
 - ✅ Workflow modes + persistence + liquid-glass UI
 - 🔜 Chapter-level controls  
 - 🔜 Consistency panel  
