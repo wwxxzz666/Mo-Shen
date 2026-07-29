@@ -1,11 +1,16 @@
-import re
-
-from langchain_core.messages import AIMessage
-
-from storyagents.graph.conditional_logic import StoryConditionalLogic
-from storyagents.graph.propagation import StoryPropagator
-from storyagents.graph.setup import StoryGraphSetup
+from storyagents.orchestration.roles import (
+    _apply_outline,
+    _apply_planner,
+    _apply_reviewer,
+    _apply_showrunner,
+    _apply_writer,
+)
+from storyagents.orchestration.routing import StoryConditionalLogic
+from storyagents.orchestration.state import create_initial_state
+from storyagents.orchestration.story_graph import StoryAgentsGraph
+from storyagents.orchestration.workflow import StoryWorkflow
 from storyagents.schemas import (
+    ChapterBeat,
     ChapterReview,
     CharacterBundle,
     ReviewVerdict,
@@ -14,17 +19,18 @@ from storyagents.schemas import (
     StoryOutline,
     StoryPlan,
     StoryWorld,
-    ChapterBeat,
 )
 
 
-class _StructuredResponder:
-    def __init__(self, schema):
-        self.schema = schema
+class _FakeRoleAgent:
+    """Deterministic stand-in for AgentScope role agents in unit tests."""
 
-    def invoke(self, prompt):
-        if self.schema is StoryPlan:
-            return StoryPlan(
+    def __init__(self, name: str):
+        self.name = name
+
+    async def run(self, state):
+        if self.name == "Planner":
+            plan = StoryPlan(
                 title="The Salt Tower",
                 premise="A courier discovers a drowned city's memory archive can rewrite grief.",
                 genre="Speculative mystery",
@@ -34,64 +40,76 @@ class _StructuredResponder:
                 tense="Past tense",
                 core_conflict="The protagonist must decide whether truth is worth reopening collective trauma.",
                 must_include=["A submerged library", "A choice that costs a friendship"],
-                target_chapters=2,
+                target_chapters=state["target_chapters"],
             )
-        if self.schema is StoryWorld:
-            return StoryWorld(
+            return _apply_planner(state, plan, "", {})
+
+        if self.name == "Worldbuilder":
+            world = StoryWorld(
                 world_summary="A coastal city survives by harvesting memories from flooded ruins.",
-                rules=["Memories decay when exposed to direct sunlight.", "Divers can carry only one memory shard at a time."],
-                key_locations=["The salt tower archive", "The drowned tram tunnels"],
-                conflict_engine="Every recovered memory can destabilize the political myths holding the city together.",
+                rules=["Memories decay when exposed to direct sunlight."],
+                key_locations=["The salt tower archive"],
+                conflict_engine="Recovered memories destabilize political myths.",
             )
-        if self.schema is CharacterBundle:
-            return CharacterBundle(
-                protagonist="Mira, a disciplined courier who distrusts nostalgia yet secretly hoards forbidden memories.",
-                antagonist="Archivist Vey, who weaponizes selective truth to keep the city orderly.",
-                supporting_cast=["Jun, Mira's engineer friend who wants the city to remember honestly."],
-                relationship_web="Mira and Jun share deep trust that frays when Jun pushes her toward public disclosure.",
+            from storyagents.orchestration.roles import _apply_worldbuilder
+
+            return _apply_worldbuilder(state, world, "", {})
+
+        if self.name == "Character Designer":
+            bundle = CharacterBundle(
+                protagonist="Mira, a disciplined courier.",
+                antagonist="Archivist Vey.",
+                supporting_cast=["Jun, Mira's engineer friend."],
+                relationship_web="Trust frays under public pressure.",
             )
-        if self.schema is StoryOutline:
-            return StoryOutline(
-                logline="A courier risks the city's fragile peace by uncovering a memory everyone agreed to drown.",
+            from storyagents.orchestration.roles import _apply_character
+
+            return _apply_character(state, bundle, "", {})
+
+        if self.name == "Outline Agent":
+            outline = StoryOutline(
+                logline="A courier risks the city's fragile peace by uncovering a drowned memory.",
                 act_structure="Chapter one opens the mystery; chapter two forces the public choice.",
                 chapter_beats=[
                     ChapterBeat(
-                        chapter_number=1,
-                        title="The First Retrieval",
-                        objective="Introduce Mira and the forbidden memory shard.",
-                        conflict="Mira must hide the shard from the archive while Jun pressures her to decode it.",
-                        ending_hook="The shard reveals someone erased Jun's sister from the city's official history.",
-                    ),
-                    ChapterBeat(
-                        chapter_number=2,
-                        title="The Public Unsealing",
-                        objective="Force Mira to decide whether to expose the archive's lie.",
-                        conflict="Vey offers Mira safety if she buries the truth again.",
-                        ending_hook="Mira releases the memory and accepts the city's anger.",
-                    ),
+                        chapter_number=idx,
+                        title=f"Beat {idx}",
+                        objective=f"Objective {idx}",
+                        conflict=f"Conflict {idx}",
+                        ending_hook=f"Hook {idx}",
+                    )
+                    for idx in range(1, state["target_chapters"] + 1)
                 ],
             )
-        if self.schema is ChapterReview:
-            chapter_match = re.search(r"Current chapter draft:\n(.+)", prompt, re.DOTALL)
-            draft = chapter_match.group(1).strip() if chapter_match else "Draft unavailable."
-            chapter_number_match = re.search(r"Chapter (\d+)", draft)
-            chapter_number = chapter_number_match.group(1) if chapter_number_match else "?"
-            return ChapterReview(
+            return _apply_outline(state, outline, "", {})
+
+        if self.name == "Chapter Writer":
+            chapter_number = state["current_chapter_index"]
+            text = (
+                f"Chapter {chapter_number}\n\n"
+                f"Mira enters the scene for chapter {chapter_number} and makes a costly choice."
+            )
+            return _apply_writer(state, None, text, {})
+
+        if self.name == "Continuity Reviewer":
+            chapter_number = state["current_chapter_index"]
+            review = ChapterReview(
                 verdict=ReviewVerdict.APPROVE,
-                continuity_notes=f"Chapter {chapter_number} locks in Mira's escalating distrust of the archive.",
+                continuity_notes=f"Chapter {chapter_number} locks in Mira's distrust.",
                 revision_instructions="Ready to keep.",
                 chapter_summary=f"Approved summary for chapter {chapter_number}.",
             )
-        if self.schema is ShowrunnerDecision:
-            match = re.search(r"Current chapter: (\d+) of (\d+)", prompt)
-            current = int(match.group(1))
-            total = int(match.group(2))
+            return _apply_reviewer(state, review, "", {})
+
+        if self.name == "Showrunner":
+            current = state["current_chapter_index"]
+            total = state["target_chapters"]
             status = (
                 ShowrunnerStatus.CONTINUE
                 if current < total
                 else ShowrunnerStatus.COMPLETE
             )
-            return ShowrunnerDecision(
+            decision = ShowrunnerDecision(
                 status=status,
                 editorial_note=f"Chapter {current} lands the intended turn cleanly.",
                 next_chapter_focus=(
@@ -100,26 +118,42 @@ class _StructuredResponder:
                     else "Close the run with the consequences now in motion."
                 ),
             )
-        raise AssertionError(f"Unexpected schema: {self.schema}")
-
-
-class _FakeLLM:
-    def with_structured_output(self, schema):
-        return _StructuredResponder(schema)
-
-    def invoke(self, prompt):
-        match = re.search(r"Write Chapter (\d+)", str(prompt))
-        chapter_number = match.group(1) if match else "?"
-        return AIMessage(
-            content=(
-                f"Chapter {chapter_number}\n\n"
-                f"Mira enters the scene for chapter {chapter_number} and makes a costly choice."
+            return _apply_showrunner(
+                state,
+                decision,
+                decision.editorial_note,
+                {"max_revision_rounds": 2},
             )
-        )
+
+        raise AssertionError(f"Unexpected role: {self.name}")
+
+
+def _fake_agents(include_worldbuilding: bool = False, include_review: bool = False):
+    names = ["Planner", "Outline Agent", "Chapter Writer", "Showrunner"]
+    if include_worldbuilding:
+        names = [
+            "Planner",
+            "Worldbuilder",
+            "Character Designer",
+            "Outline Agent",
+            "Chapter Writer",
+            "Showrunner",
+        ]
+    if include_review:
+        names = [
+            "Planner",
+            "Worldbuilder",
+            "Character Designer",
+            "Outline Agent",
+            "Chapter Writer",
+            "Continuity Reviewer",
+            "Showrunner",
+        ]
+    return {name: _FakeRoleAgent(name) for name in names}
 
 
 def test_story_propagator_initial_state():
-    state = StoryPropagator().create_initial_state("Write me a flooded-city mystery.", 2)
+    state = create_initial_state("Write me a flooded-city mystery.", 2)
 
     assert state["target_chapters"] == 2
     assert state["current_chapter_index"] == 1
@@ -132,23 +166,78 @@ def test_story_conditional_logic_routes_revision_loop():
 
     assert logic.after_reviewer({"reviewer_verdict": "Revise", "revision_count": 1}) == "Chapter Writer"
     assert logic.after_reviewer({"reviewer_verdict": "Revise", "revision_count": 2}) == "Showrunner"
-    assert logic.after_showrunner({"showrunner_status": "Continue", "chapters": ["c1"], "target_chapters": 2}) == "Chapter Writer"
-    assert logic.after_showrunner({"showrunner_status": "Continue", "chapters": ["c1", "c2"], "target_chapters": 2}) == "__end__"
+    assert logic.after_showrunner(
+        {"showrunner_status": "Continue", "chapters": ["c1"], "target_chapters": 2}
+    ) == "Chapter Writer"
+    assert logic.after_showrunner(
+        {"showrunner_status": "Continue", "chapters": ["c1", "c2"], "target_chapters": 2}
+    ) == "__end__"
 
 
 def test_story_graph_runs_two_chapters_end_to_end():
-    fake_llm = _FakeLLM()
-    workflow = StoryGraphSetup(fake_llm, fake_llm, {"max_revision_rounds": 2, "output_language": "English"}).setup_graph()
-    graph = workflow.compile()
-    initial_state = StoryPropagator().create_initial_state(
-        "Write a two-chapter speculative mystery about archived memories.",
-        2,
+    workflow = StoryWorkflow(
+        deep_model=None,
+        quick_model=None,
+        config={"max_revision_rounds": 2, "output_language": "English", "workflow_mode": "quick"},
+        role_agents=_fake_agents(),
+    )
+    graph = StoryAgentsGraph(
+        config={
+            "max_revision_rounds": 2,
+            "output_language": "English",
+            "workflow_mode": "quick",
+            "target_chapters": 2,
+            "results_dir": ".",
+            "llm_provider": "deepseek",
+            "deep_think_llm": "deepseek-chat",
+            "quick_think_llm": "deepseek-chat",
+        },
+        workflow=workflow,
     )
 
-    result = graph.invoke(initial_state, config={"recursion_limit": 40})
+    result, manuscript = graph.generate_story(
+        "Write a two-chapter speculative mystery about archived memories.",
+        target_chapters=2,
+    )
 
     assert result["story_title"] == "The Salt Tower"
     assert len(result["chapters"]) == 2
-    assert "Chapter 1" in result["final_manuscript"]
-    assert "Chapter 2" in result["final_manuscript"]
+    assert "Chapter 1" in manuscript
+    assert "Chapter 2" in manuscript
     assert result["showrunner_status"] == "Complete"
+
+
+def test_story_graph_stream_emits_node_events():
+    workflow = StoryWorkflow(
+        deep_model=None,
+        quick_model=None,
+        config={"max_revision_rounds": 2, "output_language": "English", "workflow_mode": "quick"},
+        role_agents=_fake_agents(),
+    )
+    graph = StoryAgentsGraph(
+        config={
+            "max_revision_rounds": 2,
+            "output_language": "English",
+            "workflow_mode": "quick",
+            "target_chapters": 1,
+            "results_dir": ".",
+            "llm_provider": "deepseek",
+            "deep_think_llm": "deepseek-chat",
+            "quick_think_llm": "deepseek-chat",
+        },
+        workflow=workflow,
+    )
+
+    events = list(
+        graph.generate_story_stream(
+            "Write a one-chapter story.",
+            target_chapters=1,
+        )
+    )
+    node_names = [
+        event["data"]["node"]
+        for event in events
+        if event["event"] == "node_complete"
+    ]
+    assert node_names == ["Planner", "Outline Agent", "Chapter Writer", "Showrunner"]
+    assert events[-1]["event"] == "story_complete"

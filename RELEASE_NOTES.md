@@ -1,5 +1,24 @@
 # Release Notes
 
+## 2026-07-29 · v0.2.1
+
+### Editor + Cleanup
+
+- 局部编辑 **Editor** 迁到 AgentScope（`orchestration/editor.py`）
+- 清理 `graph/` 中 LangGraph 实现与旧 `agents/` 角色节点
+- 移除 `llm_clients/` 与 LangChain 运行时依赖
+- 新增真实 API smoke 测试：`tests/test_real_api_smoke.py`（无 Key 自动 skip）
+
+## 2026-07-29 · v0.2.0
+
+### AgentScope Multi-Agent Orchestration
+
+- 多智能体协作编排从 **LangGraph** 切换为 **AgentScope 2.x**
+- 新增 `storyagents/orchestration/`：角色 Agent、共享故事状态、条件路由与章节循环
+- 仍保留 `quick` / `standard` / `deep` 三档工作流，以及 CLI / HTTP / H5 对外接口
+- `StoryAgentsGraph` API 保持兼容（`generate_story` / `generate_story_stream`）
+- 要求 Python **3.11+**
+
 ## 2026-06-01
 
 ### UI Refresh

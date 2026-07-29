@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-3776ab?logo=python&logoColor=white" alt="Python"></a>
-  <img src="https://img.shields.io/badge/LangGraph-0.4+-009688?logo=langchain&logoColor=white" alt="LangGraph">
+  <img src="https://img.shields.io/badge/AgentScope-2.0+-009688?logo=python&logoColor=white" alt="AgentScope">
   <img src="https://img.shields.io/badge/LLM-DeepSeek%20%7C%20OpenAI%20%7C%20Claude%20%7C%20Gemini-ff6b6b" alt="LLM">
   <img src="https://img.shields.io/badge/Platform-Web%20%7C%20WeChat%20Mini%20Program%20%7C%20CLI-blue" alt="Platform">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT">
@@ -177,17 +177,12 @@ python -m pytest tests/test_storyagents_server.py -q
 ```text
 Mo-Shen/
 ├─ storyagents/                # Core framework
-│  ├─ agents/                  # 7 agent implementations
-│  │  ├─ planning/             #   Planner
-│  │  ├─ worldbuilding/        #   Worldbuilder
-│  │  ├─ characters/           #   Character Designer
-│  │  ├─ outlining/            #   Outline Agent
-│  │  ├─ writing/              #   Chapter Writer
-│  │  ├─ review/               #   Continuity Reviewer
-│  │  ├─ management/           #   Showrunner
-│  │  └─ editing/              #   Editor (local edits)
-│  ├─ graph/                   #   LangGraph orchestration & state propagation
-│  ├─ llm_clients/             #   Multi-vendor model adapter layer
+│  ├─ orchestration/           #   AgentScope multi-agent orchestration (0.2+)
+│  │  ├─ roles.py              #     7 story role agents
+│  │  ├─ editor.py             #     local text editor
+│  │  ├─ workflow.py           #     pipeline + revision loops
+│  │  └─ story_graph.py        #     public facade
+│  ├─ graph/                   #   compatibility re-export
 │  ├─ h5/                      #   Web studio frontend
 │  ├─ cli.py                   #   CLI entry
 │  └─ server.py                #   HTTP service & API
@@ -232,4 +227,4 @@ If Mo-Shen helps you, a ⭐ Star means a lot to the author.
 
 [MIT License](LICENSE) © 2026 wwxxzz666
 
-Built on top of [LangGraph](https://github.com/langchain-ai/langgraph) and [LangChain](https://github.com/langchain-ai/langchain).
+Built on top of [AgentScope](https://github.com/agentscope-ai/agentscope) (v0.2+).
