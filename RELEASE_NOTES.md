@@ -1,13 +1,18 @@
 # Release Notes
 
-## 2026-07-29 · v0.2.1
+## 2026-07-29 · v0.2.1（AgentScope 正式版展示）
 
-### Editor + Cleanup
+### 文档与发布面
+
+- README / README_EN 按 **v0.2 AgentScope 版**重写：版本介绍、v0.1→v0.2 对照表、改动清单、架构简图
+- GitHub Release / Tag：`v0.2.1`，默认分支 `main` 展示新版说明
+
+### 运行时（相对 v0.1）
 
 - 局部编辑 **Editor** 迁到 AgentScope（`orchestration/editor.py`）
 - 清理 `graph/` 中 LangGraph 实现与旧 `agents/` 角色节点
 - 移除 `llm_clients/` 与 LangChain 运行时依赖
-- 新增真实 API smoke 测试：`tests/test_real_api_smoke.py`（无 Key 自动 skip）
+- 新增真实 API smoke 测试：`tests/test_real_api_smoke.py`（`STORYAGENTS_RUN_SMOKE=1` 启用）
 
 ## 2026-07-29 · v0.2.0
 
