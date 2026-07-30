@@ -805,14 +805,19 @@ async function runApiFlowStream(payload) {
 
       for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
-        const jsonStr = line.slice(6).trim();
-        if (!jsonStr) continue;
 
+        let event;
         try {
-          const event = JSON.parse(jsonStr);
+          event = StoryAgentsSSE.parseEventLine(line);
+        } catch (parseError) {
+          console.warn("SSE parse error:", parseError);
+          continue;
+        }
+        if (!event) continue;
+        StoryAgentsSSE.assertSuccessfulEvent(event);
 
           if (event.event === "node_complete") {
-            const { node, data } = event;
+            const { data, node } = StoryAgentsSSE.getNodeEventContext(event);
 
             // Update agent status
             const agentIndex = getNodeToAgentMap()[node];
@@ -911,12 +916,6 @@ async function runApiFlowStream(payload) {
             localStorage.setItem("storyagents-h5-form", JSON.stringify(payload));
           }
 
-          if (event.error) {
-            throw new Error(event.error);
-          }
-        } catch (parseError) {
-          console.warn("SSE parse error:", parseError);
-        }
       }
     }
   } catch (error) {
@@ -1303,14 +1302,19 @@ async function continueStory(id) {
 
       for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
-        const jsonStr = line.slice(6).trim();
-        if (!jsonStr) continue;
 
+        let event;
         try {
-          const event = JSON.parse(jsonStr);
+          event = StoryAgentsSSE.parseEventLine(line);
+        } catch (parseError) {
+          console.warn("SSE parse error:", parseError);
+          continue;
+        }
+        if (!event) continue;
+        StoryAgentsSSE.assertSuccessfulEvent(event);
 
           if (event.event === "node_complete") {
-            const { node, data } = event;
+            const { data, node } = StoryAgentsSSE.getNodeEventContext(event);
 
             // Update agent status
             const agentIndex = getNodeToAgentMap()[node];
@@ -1377,12 +1381,6 @@ async function continueStory(id) {
             loadHistory();
           }
 
-          if (event.error) {
-            throw new Error(event.error);
-          }
-        } catch (parseError) {
-          console.warn("SSE parse error:", parseError);
-        }
       }
     }
   } catch (error) {

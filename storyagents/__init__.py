@@ -7,11 +7,6 @@ try:
 except ImportError:
     pass
 
-try:
-    import langchain_core  # noqa: F401
-except ImportError:
-    pass
-
 warnings.filterwarnings(
     "ignore",
     message=r"The default value of `allowed_objects`.*",
@@ -19,6 +14,6 @@ warnings.filterwarnings(
 )
 
 from .default_config import DEFAULT_STORY_CONFIG
-from .graph.story_graph import StoryAgentsGraph
+from .orchestration.story_graph import StoryAgentsGraph
 
 __all__ = ["DEFAULT_STORY_CONFIG", "StoryAgentsGraph"]

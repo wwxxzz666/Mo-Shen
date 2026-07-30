@@ -146,7 +146,12 @@ def test_storyagents_server_health_and_draft_endpoint():
         with urlopen(f"http://127.0.0.1:{port}/h5/", timeout=5) as response:
             html = response.read().decode("utf-8")
         assert "墨神" in html
+        assert html.index("/h5/sse.js") < html.index("/h5/app.js")
         assert "/h5/app.js" in html
+
+        with urlopen(f"http://127.0.0.1:{port}/h5/sse.js", timeout=5) as response:
+            sse_helper = response.read().decode("utf-8")
+        assert "parseEventLine" in sse_helper
     finally:
         server.shutdown()
         server.server_close()
@@ -204,10 +209,19 @@ def test_story_updates_and_continuation_persist(tmp_path, monkeypatch):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        stream_lines = []
         with urlopen(continue_request, timeout=5) as response:
-            stream_text = response.read(512).decode("utf-8")
+            while True:
+                line = response.readline().decode("utf-8")
+                if not line:
+                    break
+                stream_lines.append(line)
+                if '"event": "story_saved"' in line:
+                    break
+        stream_text = "".join(stream_lines)
 
         assert '"event": "node_complete"' in stream_text
+        assert '"event": "story_saved"' in stream_text
 
         with urlopen(
             f"http://127.0.0.1:{port}/api/storyagents/stories/{encoded_story_id}",

@@ -1,5 +1,25 @@
 # Release Notes
 
+## 2026-07-29 · v2.0（分支 agentscope-mo-shen）
+
+### 版本分轨
+
+- 默认分支 `main` → 经典 LangGraph 版，标签 **`v1`**
+- 分支 `agentscope-mo-shen` → AgentScope 版，标签 **`v2.0`**
+- README 按双版本结构展示：对照表、架构说明、克隆方式
+
+### 运行时（相对 v1）
+
+- 多智能体协作编排从 **LangGraph** 切换为 **AgentScope 2.x**
+- 新增 `storyagents/orchestration/`：角色 Agent、共享故事状态、条件路由与章节循环
+- 局部编辑 **Editor** 迁到 AgentScope
+- 清理旧 `agents/` / LangGraph `graph/` 实现与 `llm_clients/`
+- 移除 LangChain 运行时依赖
+- 仍保留 `quick` / `standard` / `deep` 与 CLI / HTTP / H5 接口
+- `StoryAgentsGraph` API 兼容
+- Python **3.11+**
+- 真实 API smoke：`tests/test_real_api_smoke.py`（`STORYAGENTS_RUN_SMOKE=1`）
+
 ## 2026-06-01
 
 ### UI Refresh
