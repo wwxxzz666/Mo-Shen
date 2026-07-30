@@ -72,6 +72,7 @@ http://127.0.0.1:18990/storyagents/h5/
     "第一章正文",
     "第二章正文"
   ],
+  "target_chapter_length": 1500,
   "final_manuscript": "合并后的完整稿件"
 }
 ```
@@ -79,6 +80,7 @@ http://127.0.0.1:18990/storyagents/h5/
 其中：
 
 - `chapters` 可选
+- `target_chapter_length` 表示每章目标长度（英文按单词，其他语言按非空白字符）
 - `current_chapter_draft` 可选
 - `final_manuscript` 最好提供
 

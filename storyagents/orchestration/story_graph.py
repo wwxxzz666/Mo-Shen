@@ -93,7 +93,11 @@ class StoryAgentsGraph:
         final_state: Dict[str, Any] = {}
 
         async def _collect() -> Dict[str, Any]:
-            state: Dict[str, Any] = create_initial_state(user_request, chapter_count)
+            state: Dict[str, Any] = create_initial_state(
+                user_request,
+                chapter_count,
+                int(self.config.get("target_chapter_length", 1500)),
+            )
             async for event in self.workflow.stream(user_request, chapter_count):
                 if event["event"] == "node_complete":
                     data = dict(event["data"])

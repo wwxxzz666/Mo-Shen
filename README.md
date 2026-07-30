@@ -213,6 +213,7 @@ python -m storyagents.cli serve --port 8000 --mode standard
 python -m storyagents.cli draft \
   --prompt "写一个发生在海上记忆之城的悬疑故事" \
   --chapters 3 \
+  --chapter-length 1500 \
   --mode deep
 ```
 

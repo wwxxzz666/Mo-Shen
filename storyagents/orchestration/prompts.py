@@ -24,6 +24,24 @@ def format_recent_summaries(summaries: List[str], limit: int = 3) -> str:
     )
 
 
+def get_chapter_length_instruction(state: Dict[str, Any], config: dict) -> str:
+    target = int(
+        state.get("target_chapter_length")
+        or config.get("target_chapter_length")
+        or 1500
+    )
+    tolerance = max(100, round(target * 0.15))
+    minimum = max(1, target - tolerance)
+    maximum = target + tolerance
+    language = str(config.get("output_language", "Chinese")).strip().lower()
+    unit = "words" if language == "english" else "non-whitespace characters"
+    return (
+        f"Target chapter body length: about {target} {unit}; "
+        f"keep it between {minimum} and {maximum} {unit}. "
+        "Do not pad the chapter with repetition just to reach the target."
+    )
+
+
 ROLE_SYSTEM_PROMPTS = {
     "Planner": (
         "You are a developmental editor turning rough fiction ideas into "
@@ -118,6 +136,7 @@ def _chapter_beat(state: Dict[str, Any]) -> str:
 def writer_prompt(state: Dict[str, Any], config: dict) -> str:
     beat = _chapter_beat(state)
     rewrite_mode = "yes" if state.get("revision_notes") else "no"
+    length_instruction = get_chapter_length_instruction(state, config)
     return f"""Write the requested chapter in polished prose.
 
 Story title: {state["story_title"]}
@@ -146,6 +165,9 @@ Continuity notes:
 Rewrite requested: {rewrite_mode}
 Revision notes:
 {state.get("revision_notes") or "None."}
+
+Length requirement:
+{length_instruction}
 
 Write Chapter {state["current_chapter_index"]} in polished prose. Keep it narratively complete, emotionally specific, and aligned with the beat. If revision notes are present, fully rewrite the chapter rather than patching isolated sentences.{get_language_instruction(config)}"""
 

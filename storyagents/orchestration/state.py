@@ -11,6 +11,7 @@ class StoryState(TypedDict, total=False):
     story_title: str
     story_brief: str
     target_chapters: int
+    target_chapter_length: int
     story_bible: str
     character_sheets: str
     plot_outline: str
@@ -29,13 +30,18 @@ class StoryState(TypedDict, total=False):
     final_manuscript: str
 
 
-def create_initial_state(user_request: str, target_chapters: int) -> Dict[str, Any]:
+def create_initial_state(
+    user_request: str,
+    target_chapters: int,
+    target_chapter_length: int = 1500,
+) -> Dict[str, Any]:
     return {
         "messages": [("human", user_request)],
         "user_request": user_request,
         "story_title": "",
         "story_brief": "",
         "target_chapters": target_chapters,
+        "target_chapter_length": target_chapter_length,
         "story_bible": "",
         "character_sheets": "",
         "plot_outline": "",

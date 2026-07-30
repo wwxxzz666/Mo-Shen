@@ -60,6 +60,7 @@ class StoryWorkflow:
             "showrunner_status": state.get("showrunner_status", ""),
             "final_manuscript": state.get("final_manuscript", ""),
             "target_chapters": chapter_count,
+            "target_chapter_length": state.get("target_chapter_length", 1500),
         }
 
     async def run(
@@ -83,7 +84,11 @@ class StoryWorkflow:
         user_request: str,
         target_chapters: int,
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        state = create_initial_state(user_request, target_chapters)
+        state = create_initial_state(
+            user_request,
+            target_chapters,
+            int(self.config.get("target_chapter_length", 1500)),
+        )
         steps = 0
 
         async def emit(node_name: str) -> AsyncGenerator[Dict[str, Any], None]:
@@ -133,6 +138,7 @@ class StoryWorkflow:
             "event": "story_complete",
             "data": {
                 "target_chapters": target_chapters,
+                "target_chapter_length": state.get("target_chapter_length", 1500),
                 "story_title": state.get("story_title", ""),
                 "final_manuscript": state.get("final_manuscript", ""),
                 "chapters": state.get("chapters", []),

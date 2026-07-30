@@ -5,7 +5,11 @@ from typing import Optional
 
 import typer
 
-from storyagents.default_config import DEFAULT_STORY_CONFIG, normalize_workflow_mode
+from storyagents.default_config import (
+    DEFAULT_STORY_CONFIG,
+    normalize_target_chapter_length,
+    normalize_workflow_mode,
+)
 from storyagents.orchestration.story_graph import StoryAgentsGraph
 from storyagents.server import serve as serve_storyagents
 
@@ -19,6 +23,7 @@ app = typer.Typer(
 def _base_config(
     *,
     chapters: int,
+    chapter_length: int,
     provider: Optional[str],
     deep_model: Optional[str],
     quick_model: Optional[str],
@@ -29,6 +34,9 @@ def _base_config(
 ) -> dict:
     config = DEFAULT_STORY_CONFIG.copy()
     config["target_chapters"] = chapters
+    config["target_chapter_length"] = normalize_target_chapter_length(
+        chapter_length
+    )
     if provider:
         config["llm_provider"] = provider
     if deep_model:
@@ -60,6 +68,13 @@ def draft(
         max=12,
         help="Target chapter count for this run.",
     ),
+    chapter_length: int = typer.Option(
+        DEFAULT_STORY_CONFIG["target_chapter_length"],
+        "--chapter-length",
+        min=300,
+        max=5000,
+        help="Target length for each chapter (words in English; characters otherwise).",
+    ),
     provider: Optional[str] = typer.Option(
         None,
         "--provider",
@@ -89,6 +104,7 @@ def draft(
 ):
     config = _base_config(
         chapters=chapters,
+        chapter_length=chapter_length,
         provider=provider,
         deep_model=deep_model,
         quick_model=quick_model,
@@ -116,6 +132,13 @@ def serve(
         min=1,
         max=12,
         help="Default chapter count for API requests that omit chapters.",
+    ),
+    chapter_length: int = typer.Option(
+        DEFAULT_STORY_CONFIG["target_chapter_length"],
+        "--chapter-length",
+        min=300,
+        max=5000,
+        help="Default target length for each chapter (words in English; characters otherwise).",
     ),
     provider: Optional[str] = typer.Option(
         None,
@@ -155,6 +178,7 @@ def serve(
 ):
     config = _base_config(
         chapters=chapters,
+        chapter_length=chapter_length,
         provider=provider,
         deep_model=deep_model,
         quick_model=quick_model,

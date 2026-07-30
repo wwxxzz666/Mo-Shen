@@ -10,12 +10,27 @@ _ENV_OVERRIDES = {
     "STORYAGENTS_LLM_BACKEND_URL": "backend_url",
     "STORYAGENTS_OUTPUT_LANGUAGE": "output_language",
     "STORYAGENTS_TARGET_CHAPTERS": "target_chapters",
+    "STORYAGENTS_TARGET_CHAPTER_LENGTH": "target_chapter_length",
     "STORYAGENTS_MAX_REVISION_ROUNDS": "max_revision_rounds",
     "STORYAGENTS_WORKFLOW_MODE": "workflow_mode",
     "STORYAGENTS_FAST_MODE": "fast_mode",
 }
 
 VALID_WORKFLOW_MODES = ("quick", "standard", "deep")
+MIN_TARGET_CHAPTER_LENGTH = 300
+MAX_TARGET_CHAPTER_LENGTH = 5000
+DEFAULT_TARGET_CHAPTER_LENGTH = 1500
+
+
+def normalize_target_chapter_length(
+    value,
+    default: int = DEFAULT_TARGET_CHAPTER_LENGTH,
+) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(MIN_TARGET_CHAPTER_LENGTH, min(MAX_TARGET_CHAPTER_LENGTH, parsed))
 
 
 def normalize_workflow_mode(mode) -> str:
@@ -47,6 +62,9 @@ def _apply_env_overrides(config: dict) -> dict:
         config["workflow_mode"] = "quick" if config.get("fast_mode", True) else "deep"
     config["workflow_mode"] = normalize_workflow_mode(config.get("workflow_mode"))
     config["fast_mode"] = config["workflow_mode"] == "quick"
+    config["target_chapter_length"] = normalize_target_chapter_length(
+        config.get("target_chapter_length")
+    )
     if config["workflow_mode"] == "deep":
         config["max_revision_rounds"] = max(
             int(config.get("max_revision_rounds", 2)),
@@ -70,6 +88,7 @@ DEFAULT_STORY_CONFIG = _apply_env_overrides(
         "output_language": "Chinese",
         "target_chapters": 3,
         "max_revision_rounds": 2,
+        "target_chapter_length": DEFAULT_TARGET_CHAPTER_LENGTH,
         "max_recur_limit": 80,
         "workflow_mode": "quick",
         "fast_mode": True,
