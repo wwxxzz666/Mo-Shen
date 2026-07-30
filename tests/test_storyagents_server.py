@@ -32,6 +32,7 @@ class _FakeGraph:
             "chapter_summaries": ["The letter appears and changes everything."],
             "continuity_notes": "Remember the wet envelope.",
             "showrunner_status": "Complete",
+            "target_chapter_length": self.config.get("target_chapter_length", 1500),
         }
         return state, manuscript
 
@@ -61,6 +62,7 @@ class _FakeGraph:
                 "showrunner_status": "Complete",
                 "final_manuscript": final_manuscript,
                 "target_chapters": target_chapters,
+                "target_chapter_length": self.config.get("target_chapter_length", 1500),
             },
         }
         yield {
@@ -82,6 +84,7 @@ def test_build_story_response_payload():
             "chapter_summaries": ["s"],
             "continuity_notes": "n",
             "showrunner_status": "Complete",
+            "target_chapter_length": 1500,
         },
         "M",
     )
@@ -89,18 +92,27 @@ def test_build_story_response_payload():
     assert payload["story_title"] == "T"
     assert payload["final_manuscript"] == "M"
     assert payload["chapters"] == ["x"]
+    assert payload["target_chapter_length"] == 1500
 
 
 def test_mode_helpers():
-    overrides = build_request_overrides({"mode": "standard", "chapters": 5})
+    overrides = build_request_overrides(
+        {"mode": "standard", "chapters": 5, "chapter_length": 2200}
+    )
     assert overrides["workflow_mode"] == "standard"
     assert overrides["target_chapters"] == 5
+    assert overrides["target_chapter_length"] == 2200
+    assert (
+        build_request_overrides({"chapter_length": 99999})["target_chapter_length"]
+        == 5000
+    )
     assert overrides["fast_mode"] is False
 
-    config = build_runtime_config(workflow_mode="deep")
+    config = build_runtime_config(workflow_mode="deep", target_chapter_length=2400)
     assert config["workflow_mode"] == "deep"
     assert config["fast_mode"] is False
     assert config["max_revision_rounds"] >= 3
+    assert config["target_chapter_length"] == 2400
 
 
 def test_storyagents_server_health_and_draft_endpoint():
@@ -128,6 +140,7 @@ def test_storyagents_server_health_and_draft_endpoint():
                     "chapters": 1,
                     "mode": "standard",
                     "output_language": "English",
+                    "chapter_length": 1800,
                 }
             ).encode("utf-8"),
             headers={"Content-Type": "application/json"},
@@ -141,6 +154,7 @@ def test_storyagents_server_health_and_draft_endpoint():
         assert payload["showrunner_status"] == "Complete"
         assert payload["chapters"] == ["A storm letter arrives."]
         assert payload["workflow_mode"] == "standard"
+        assert payload["target_chapter_length"] == 1800
         assert cors == "*"
 
         with urlopen(f"http://127.0.0.1:{port}/h5/", timeout=5) as response:
@@ -148,6 +162,7 @@ def test_storyagents_server_health_and_draft_endpoint():
         assert "墨神" in html
         assert html.index("/h5/sse.js") < html.index("/h5/app.js")
         assert "/h5/app.js" in html
+        assert 'name="chapter_length"' in html
 
         with urlopen(f"http://127.0.0.1:{port}/h5/sse.js", timeout=5) as response:
             sse_helper = response.read().decode("utf-8")
@@ -175,7 +190,12 @@ def test_story_updates_and_continuation_persist(tmp_path, monkeypatch):
         draft_request = Request(
             f"http://127.0.0.1:{port}/api/storyagents/draft",
             data=json.dumps(
-                {"prompt": "Write a suspense story.", "chapters": 1, "mode": "deep"}
+                {
+                    "prompt": "Write a suspense story.",
+                    "chapters": 1,
+                    "chapter_length": 2100,
+                    "mode": "deep",
+                }
             ).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -237,6 +257,8 @@ def test_story_updates_and_continuation_persist(tmp_path, monkeypatch):
         assert "Continuation chapter 1" in final_payload["final_manuscript"]
         assert final_payload["_updated_at"]
         assert final_payload["_workflow_mode"] == "deep"
+        assert final_payload["target_chapter_length"] == 2100
+        assert final_payload["_target_chapter_length"] == 2100
 
         with urlopen(f"http://127.0.0.1:{port}/api/storyagents/stories", timeout=5) as response:
             stories = json.loads(response.read().decode("utf-8"))

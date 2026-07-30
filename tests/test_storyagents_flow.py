@@ -1,3 +1,4 @@
+from storyagents.orchestration.prompts import get_chapter_length_instruction
 from storyagents.orchestration.roles import (
     _apply_outline,
     _apply_planner,
@@ -156,9 +157,20 @@ def test_story_propagator_initial_state():
     state = create_initial_state("Write me a flooded-city mystery.", 2)
 
     assert state["target_chapters"] == 2
+    assert state["target_chapter_length"] == 1500
     assert state["current_chapter_index"] == 1
     assert state["chapters"] == []
     assert state["revision_count"] == 0
+
+
+def test_chapter_length_instruction_uses_language_appropriate_units():
+    state = create_initial_state("Write a mystery.", 1, target_chapter_length=2000)
+
+    english = get_chapter_length_instruction(state, {"output_language": "English"})
+    chinese = get_chapter_length_instruction(state, {"output_language": "Chinese"})
+
+    assert "between 1700 and 2300 words" in english
+    assert "between 1700 and 2300 non-whitespace characters" in chinese
 
 
 def test_planner_cannot_override_requested_chapter_count():

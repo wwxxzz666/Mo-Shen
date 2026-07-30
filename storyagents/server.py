@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 from urllib.parse import unquote, urlparse
 
-from storyagents.default_config import DEFAULT_STORY_CONFIG, normalize_workflow_mode
+from storyagents.default_config import (
+    DEFAULT_STORY_CONFIG,
+    normalize_target_chapter_length,
+    normalize_workflow_mode,
+)
 from storyagents.orchestration.story_graph import StoryAgentsGraph
 
 
@@ -27,6 +31,7 @@ def build_runtime_config(
     workflow_mode: Optional[str] = None,
     output_language: Optional[str] = None,
     chapter_count: Optional[int] = None,
+    target_chapter_length: Optional[int] = None,
     results_dir: Optional[str] = None,
     deepseek_reasoning_effort: Optional[str] = None,
     deepseek_thinking_enabled: Optional[bool] = None,
@@ -47,6 +52,10 @@ def build_runtime_config(
         config["output_language"] = output_language
     if chapter_count is not None:
         config["target_chapters"] = chapter_count
+    if target_chapter_length is not None:
+        config["target_chapter_length"] = normalize_target_chapter_length(
+            target_chapter_length
+        )
     if results_dir:
         config["results_dir"] = results_dir
     if deepseek_reasoning_effort:
@@ -79,6 +88,14 @@ def build_request_overrides(payload: dict[str, Any]) -> dict[str, Any]:
         overrides["workflow_mode"] = normalize_workflow_mode(payload["workflow_mode"])
     if "chapters" in payload and payload["chapters"] not in (None, ""):
         overrides["target_chapters"] = max(1, min(12, int(payload["chapters"])))
+    chapter_length = payload.get(
+        "chapter_length",
+        payload.get("target_chapter_length"),
+    )
+    if chapter_length not in (None, ""):
+        overrides["target_chapter_length"] = normalize_target_chapter_length(
+            chapter_length
+        )
     if "workflow_mode" in overrides:
         overrides["fast_mode"] = overrides["workflow_mode"] == "quick"
         if overrides["workflow_mode"] == "deep":
@@ -102,6 +119,10 @@ def build_story_response_payload(state: dict[str, Any], manuscript: str) -> dict
         "continuity_notes": state.get("continuity_notes", ""),
         "showrunner_status": state.get("showrunner_status", ""),
         "final_manuscript": manuscript,
+        "target_chapter_length": normalize_target_chapter_length(
+            state.get("target_chapter_length")
+            or DEFAULT_STORY_CONFIG["target_chapter_length"]
+        ),
         "workflow_mode": normalize_workflow_mode(
             state.get("workflow_mode") or state.get("_workflow_mode")
         ),
@@ -144,6 +165,11 @@ def merge_story_payloads(
         "continuity_notes": merged_notes,
         "showrunner_status": generated_story.get("showrunner_status") or existing_story.get("showrunner_status", ""),
         "final_manuscript": final_manuscript,
+        "target_chapter_length": normalize_target_chapter_length(
+            generated_story.get("target_chapter_length")
+            or existing_story.get("target_chapter_length")
+            or DEFAULT_STORY_CONFIG["target_chapter_length"]
+        ),
     }
 
 
@@ -425,6 +451,13 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                 "mode",
                 existing_story.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"]),
             )
+            payload.setdefault(
+                "chapter_length",
+                existing_story.get(
+                    "_target_chapter_length",
+                    existing_story.get("target_chapter_length"),
+                ),
+            )
 
             # Build continuation prompt
             existing_chapters = existing_story.get("chapters", [])
@@ -563,6 +596,7 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             "continuity_notes",
             "showrunner_status",
             "final_manuscript",
+            "target_chapter_length",
         }
         updates = {key: payload[key] for key in allowed_fields if key in payload}
         if not updates:
@@ -633,6 +667,25 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                 else existing_story.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"])
             )
         )
+        chapter_length_source = (
+            payload.get(
+                "chapter_length",
+                payload.get(
+                    "target_chapter_length",
+                    existing_story.get("_target_chapter_length"),
+                ),
+            )
+            if payload is not None
+            else existing_story.get(
+                "_target_chapter_length",
+                existing_story.get("target_chapter_length"),
+            )
+        )
+        normalized_chapter_length = normalize_target_chapter_length(
+            chapter_length_source
+        )
+        result["target_chapter_length"] = normalized_chapter_length
+        result["_target_chapter_length"] = normalized_chapter_length
         result["_created_at"] = existing_story.get(
             "_created_at",
             time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts)),
@@ -703,6 +756,7 @@ def create_server(
                 workflow_mode=overrides.get("workflow_mode"),
                 output_language=overrides.get("output_language"),
                 chapter_count=overrides.get("target_chapters"),
+                target_chapter_length=overrides.get("target_chapter_length"),
                 results_dir=overrides.get("results_dir"),
                 deepseek_reasoning_effort=overrides.get("deepseek_reasoning_effort"),
                 deepseek_thinking_enabled=overrides.get("deepseek_thinking_enabled"),

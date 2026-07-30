@@ -820,7 +820,8 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
-#chapter-count {
+#chapter-count,
+#chapter-length-count {
   font-size: 0.84rem;
   font-weight: 650;
   color: var(--text-secondary);

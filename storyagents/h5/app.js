@@ -121,12 +121,15 @@ const state = {
   chapters: [],
   chapterSummaries: [],
   continuityNotes: "",
+  targetChapterLength: 1500,
 };
 
 const form = document.querySelector("#story-form");
 const promptInput = document.querySelector("#prompt");
 const chapterSlider = document.querySelector("#chapters");
 const chapterCount = document.querySelector("#chapter-count");
+const chapterLengthSlider = document.querySelector("#chapter-length");
+const chapterLengthCount = document.querySelector("#chapter-length-count");
 const modeGrid = document.querySelector("#mode-grid");
 const modeSummary = document.querySelector("#mode-summary");
 const chips = Array.from(document.querySelectorAll(".chip"));
@@ -528,6 +531,7 @@ function normalizeApiResponse(data) {
     chapters,
     chapterSummaries: Array.isArray(data.chapter_summaries) ? data.chapter_summaries : [],
     continuityNotes: data.continuity_notes || "",
+    targetChapterLength: Number(data.target_chapter_length || 1500),
   };
 }
 
@@ -540,6 +544,11 @@ function applyNormalizedStory(normalized) {
     ? normalized.chapterSummaries
     : [];
   state.continuityNotes = normalized.continuityNotes || "";
+  state.targetChapterLength = normalized.targetChapterLength || 1500;
+  if (chapterLengthSlider && chapterLengthCount) {
+    chapterLengthSlider.value = String(state.targetChapterLength);
+    chapterLengthCount.textContent = `${state.targetChapterLength} 字`;
+  }
   state.artifacts = {
     storyBrief: normalized.storyBrief,
     world: normalized.world,
@@ -572,6 +581,7 @@ function buildStoryUpdatePayload() {
     chapters: Array.isArray(state.chapters) ? state.chapters : [],
     chapter_summaries: Array.isArray(state.chapterSummaries) ? state.chapterSummaries : [],
     continuity_notes: state.continuityNotes || "",
+    target_chapter_length: state.targetChapterLength || 1500,
     final_manuscript: state.artifacts.manuscript || "",
   };
 }
@@ -624,6 +634,7 @@ async function runApiFlow(payload) {
         tone: payload.tone,
         audience: payload.audience,
         chapters: Number(payload.chapters),
+        chapter_length: Number(payload.chapterLength),
         mode: payload.mode,
       }),
     });
@@ -780,6 +791,7 @@ async function runApiFlowStream(payload) {
         tone: payload.tone,
         audience: payload.audience,
         chapters: Number(payload.chapters),
+        chapter_length: Number(payload.chapterLength),
         mode: payload.mode,
       }),
       signal: currentAbortController.signal,
@@ -964,6 +976,7 @@ function readForm() {
     audience: String(formData.get("audience") || "").trim(),
     mode: normalizeWorkflowMode(formData.get("workflow_mode") || state.mode),
     chapters: String(formData.get("chapters") || "3"),
+    chapterLength: String(formData.get("chapter_length") || "1500"),
   };
 }
 
@@ -983,6 +996,10 @@ function hydrateStoredForm() {
       chapterSlider.value = data.chapters;
       chapterCount.textContent = `${data.chapters} 章`;
     }
+    if (data.chapterLength && chapterLengthSlider && chapterLengthCount) {
+      chapterLengthSlider.value = data.chapterLength;
+      chapterLengthCount.textContent = `${data.chapterLength} 字`;
+    }
     if (data.mode) {
       setWorkflowMode(data.mode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
     } else {
@@ -997,6 +1014,12 @@ function bootstrap() {
   chapterSlider.addEventListener("input", (event) => {
     chapterCount.textContent = `${event.target.value} 章`;
   });
+
+  if (chapterLengthSlider && chapterLengthCount) {
+    chapterLengthSlider.addEventListener("input", (event) => {
+      chapterLengthCount.textContent = `${event.target.value} 字`;
+    });
+  }
 
   if (modeGrid) {
     modeGrid.querySelectorAll(".mode-card").forEach((card) => {
