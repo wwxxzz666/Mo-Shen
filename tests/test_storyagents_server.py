@@ -146,7 +146,12 @@ def test_storyagents_server_health_and_draft_endpoint():
         with urlopen(f"http://127.0.0.1:{port}/h5/", timeout=5) as response:
             html = response.read().decode("utf-8")
         assert "墨神" in html
+        assert html.index("/h5/sse.js") < html.index("/h5/app.js")
         assert "/h5/app.js" in html
+
+        with urlopen(f"http://127.0.0.1:{port}/h5/sse.js", timeout=5) as response:
+            sse_helper = response.read().decode("utf-8")
+        assert "parseEventLine" in sse_helper
     finally:
         server.shutdown()
         server.server_close()

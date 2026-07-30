@@ -161,6 +161,28 @@ def test_story_propagator_initial_state():
     assert state["revision_count"] == 0
 
 
+def test_planner_cannot_override_requested_chapter_count():
+    state = create_initial_state("Write exactly two chapters.", 2)
+    plan = StoryPlan(
+        title="The Salt Tower",
+        premise="A courier discovers a drowned memory archive.",
+        genre="Speculative mystery",
+        tone="Tense",
+        audience="Adult readers",
+        pov="Close third person",
+        tense="Past tense",
+        core_conflict="Truth threatens the city's fragile peace.",
+        must_include=[],
+        target_chapters=12,
+    )
+
+    updates = _apply_planner(state, plan, "", {})
+    state.update(updates)
+
+    assert state["target_chapters"] == 2
+    assert "target_chapters" not in updates
+
+
 def test_story_conditional_logic_routes_revision_loop():
     logic = StoryConditionalLogic(max_revision_rounds=2)
 

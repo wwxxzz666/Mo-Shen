@@ -136,7 +136,6 @@ def _apply_planner(
             "messages": [("ai", rendered)],
             "story_title": structured.title,
             "story_brief": rendered,
-            "target_chapters": structured.target_chapters,
         }
     title = _first_nonempty_title(text)
     return {
