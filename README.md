@@ -1,14 +1,14 @@
 # 墨神 Mo-Shen
 
 <p align="center">
-  <strong>v2.0.1 · AgentScope 多智能体小说创作工作台</strong><br>
-  <sub>分支 <code>main</code> / <code>agentscope-mo-shen</code> · 7 个专职 AI 智能体接力协作</sub>
+  <strong>v2.0.2 · 面向 Web 与微信小程序的多智能体小说创作工作台</strong><br>
+  <sub>试写确认 · 大纲确认 · 后台生成 · 暂停恢复 · 7 个专职 AI 智能体协作</sub>
 </p>
 
 <p align="center">
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white" alt="Python"></a>
-  <img src="https://img.shields.io/badge/version-v2.0.1-blue" alt="Version">
-  <img src="https://img.shields.io/badge/branch-agentscope--mo--shen-orange" alt="Branch">
+  <img src="https://img.shields.io/badge/version-v2.0.2-blue" alt="Version">
+  <img src="https://img.shields.io/badge/branch-main-orange" alt="Branch">
   <img src="https://img.shields.io/badge/AgentScope-2.0+-009688?logo=python&logoColor=white" alt="AgentScope">
   <img src="https://img.shields.io/badge/LLM-DeepSeek%20%7C%20OpenAI%20%7C%20Claude%20%7C%20Gemini-ff6b6b" alt="LLM">
   <img src="https://img.shields.io/badge/Platform-Web%20%7C%20%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F%20%7C%20CLI-blue" alt="Platform">
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="#-v201-更新日志"><b>🆕 版本更新</b></a> ·
+  <a href="#-v202-更新日志"><b>🆕 版本更新</b></a> ·
   <a href="#-快速开始"><b>🚀 快速开始</b></a> ·
   <a href="#-智能体流水线"><b>🤖 架构</b></a> ·
   <a href="#-路线图"><b>🗺️ 路线图</b></a> ·
@@ -26,17 +26,34 @@
 
 ---
 
-> **墨神 v2.0.1（AgentScope 版）** 把「写小说」拆成专业流水线：**策划 → 世界观 → 角色 → 大纲 → 写作 → 审校 → 总编**。
+> **墨神 v2.0.2** 把「写小说」拆成专业流水线：**策划 → 世界观 → 角色 → 大纲确认 → 写作 → 审校 → 总编**。
 > 每个环节由专职 AI 智能体负责，共享同一份故事状态，接力推进到成稿——而不是把所有事丢给一个模型一次写完。  
 >
 > 本分支多智能体编排使用 **[AgentScope](https://github.com/agentscope-ai/agentscope) 2.x**。  
 > 经典 LangGraph 版保留在历史标签 [`v1`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v1)。
 >
-> 🏷️ 当前标签：[v2.0.1](https://github.com/wwxxzz666/Mo-Shen/tree/v2.0.1) · 分支：`main` / `agentscope-mo-shen` · ⚡ 30 秒本地启动见下方
+> 🏷️ 当前标签：[v2.0.2](https://github.com/wwxxzz666/Mo-Shen/tree/v2.0.2) · 默认分支：`main` · ⚡ 30 秒本地启动见下方
 
 ---
 
-## 🆕 v2.0.1 更新日志
+## 🆕 v2.0.2 更新日志
+
+`v2.0.2` 将创作流程调整为用户任务优先，并为微信小程序补齐真实的服务端创作链路。
+
+- ✅ **三工作室重构**：灵感工坊、故事工坊、长篇工坊按创作目的区分，Agent 数量不再作为主要卖点
+- ✅ **200 字试写确认**：用户确认语言感觉后才启动正式创作，避免长篇生成后才发现风格不合适
+- ✅ **大纲确认关口**：故事工坊和长篇工坊完成大纲后暂停，得到确认再进入正文
+- ✅ **后台创作任务**：正式生成使用独立 `task_id`，页面退出或网络中断后可恢复进度
+- ✅ **安全暂停与恢复**：任务在当前 Agent 步骤结束后暂停，避免破坏章节和故事状态
+- ✅ **逐章可见**：正文按章展示，用户能及时判断方向是否合适
+- ✅ **小程序接入真实 API**：移除原有定时器模拟工作流，接入试写、任务、大纲确认和成稿接口
+- ✅ **移动端体验收口**：Agent 图降级为折叠的协作详情，核心页面优先展示进度、正文和用户操作
+- ✅ **创作规格统一**：三个工坊均允许自定义章节数，每章最多 5000 字
+- ✅ **东方诗意视觉**：使用暖白、竹青与墨色主题，采用中文衬线字体和更克制的交互动效
+
+详细产品与状态设计见 [小程序优先体验方案](docs/MINIPROGRAM_UX_V21.md)。
+
+### v2.0.1 更新回顾
 
 `v2.0.1` 聚焦于章节生成参数控制与工程质量，补齐了每章目标长度从界面到工作流的完整链路。
 
@@ -91,21 +108,24 @@ pip install -e .          # 或 uv sync
 
 ---
 
-## 📸 产品预览
+## 🧭 v2.0.2 创作流程
 
-<p align="center">
-  <img src="docs/assets/homepage.png" alt="墨神首页" width="80%">
-</p>
-<p align="center">
-  <em>黑金液态玻璃风格首页</em>
-</p>
+```mermaid
+flowchart LR
+    A[选择工坊] --> B[填写故事需求]
+    B --> C[200 字风格试写]
+    C --> D{确认风格}
+    D -->|重新试写| C
+    D -->|确认| E[生成故事大纲]
+    E --> F{确认大纲}
+    F -->|故事 / 长篇工坊| G[逐章生成正文]
+    F -->|修改方向| E
+    G --> H{继续 / 暂停 / 恢复}
+    H --> G
+    G --> I[成稿 / 导出 / 续写]
+```
 
-<p align="center">
-  <img src="docs/assets/studio.png" alt="墨神创作工作台" width="80%">
-</p>
-<p align="center">
-  <em>创作工作台：实时流式输出、模式切换、章节续写</em>
-</p>
+Agent 节点图和运行日志仍然保留，但默认收进“协作详情”；用户首先看到的是当前章节、正文内容、任务进度和可执行操作。
 
 ---
 
@@ -315,8 +335,10 @@ Mo-Shen/
 - ✅ **v2.0 AgentScope 编排迁移**（本分支）
 - ✅ 三档工作流（quick / standard / deep）
 - ✅ 故事持久化（编辑回写、续写合并）
-- ✅ 黑金液态玻璃 UI
+- ✅ 东方诗意 UI 与移动端适配
 - ✅ 每章目标字数控制（300–5000，续写自动继承）
+- ✅ 200 字试写、大纲确认与后台任务恢复
+- ✅ 微信小程序真实 API 创作流程
 - 🔜 章节级控制 — 单章重写、锁定满意章节  
 - 🔜 一致性面板 — 角色卡 / 世界规则 / 时间线  
 - 🔜 导入已有稿件 — 自动补齐大纲、人物、世界观  
@@ -331,12 +353,13 @@ Mo-Shen/
 
 | 版本 | 分支 | 标签 | 说明 |
 | :--- | :--- | :--- | :--- |
+| **v2.0.2** | [`main`](https://github.com/wwxxzz666/Mo-Shen/tree/main) | [`v2.0.2`](https://github.com/wwxxzz666/Mo-Shen/tree/v2.0.2) | 小程序优先创作流程、试写与大纲确认、后台任务恢复、东方诗意 UI |
 | **v2.0.1** | [`main`](https://github.com/wwxxzz666/Mo-Shen/tree/main) / [`agentscope-mo-shen`](https://github.com/wwxxzz666/Mo-Shen/tree/agentscope-mo-shen) | [`v2.0.1`](https://github.com/wwxxzz666/Mo-Shen/tree/v2.0.1) | 新增每章目标字数控制与相关工程化测试 |
 | **v1** | 历史标签 | [`v1`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v1) | 经典 LangGraph 版 |
 | **v2.0** | 历史标签 | [`v2.0`](https://github.com/wwxxzz666/Mo-Shen/releases/tag/v2.0) | AgentScope 迁移版本 |
 
 ```bash
-# 使用最新 v2.0.1（默认 main）
+# 使用最新 v2.0.2（默认 main）
 git clone https://github.com/wwxxzz666/Mo-Shen.git
 
 # 使用持续更新的 AgentScope 分支
@@ -362,5 +385,5 @@ git clone --branch v1 https://github.com/wwxxzz666/Mo-Shen.git
 
 [MIT License](LICENSE) © 2026 wwxxzz666
 
-**v2.0.1** 基于 [AgentScope](https://github.com/agentscope-ai/agentscope) 构建。
+**v2.0.2** 基于 [AgentScope](https://github.com/agentscope-ai/agentscope) 构建。
 **v1（历史版本）** 基于 LangGraph / LangChain。
