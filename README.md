@@ -181,6 +181,25 @@ StoryWorkflow     (AgentScope 编排)
 
 ## 🚀 快速开始
 
+### 云服务器部署（Web/API 版）
+
+服务器运行只需要 `storyagents` 后端和 H5 工作台，`miniprogram/` 目录不会参与 Python 安装或 Docker 构建。
+
+```bash
+docker build -t mo-shen .
+docker run -d \
+  --name mo-shen \
+  --restart unless-stopped \
+  -p 8000:8000 \
+  -e DEEPSEEK_API_KEY="你的API_KEY" \
+  -v mo-shen-stories:/app/stories \
+  mo-shen
+```
+
+访问 `http://服务器公网IP:8000/h5/`。正式部署时建议在前面增加 HTTPS 反向代理，并为服务增加访问控制。
+
+> 说明：小程序源码仍保留在仓库中，但不属于云服务器 Web/API 部署范围。
+
 ### 1. 安装
 
 ```bash

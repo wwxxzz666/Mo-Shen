@@ -5,6 +5,8 @@ from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+import pytest
+
 import storyagents.server as server_module
 from storyagents.server import (
     H5_DIR,
@@ -12,6 +14,9 @@ from storyagents.server import (
     build_runtime_config,
     build_story_response_payload,
     create_server,
+    enrich_generation_prompt,
+    validate_continuation_request,
+    validate_workshop_request,
 )
 
 
@@ -71,6 +76,19 @@ class _FakeGraph:
         }
 
 
+class _OutlineGraph(_FakeGraph):
+    def generate_story_stream(self, prompt, target_chapters=1):
+        yield {
+            "event": "node_complete",
+            "data": {
+                "node": "Outline Agent",
+                "plot_outline": "Chapter 1: The letter arrives.",
+                "target_chapters": target_chapters,
+            },
+        }
+        yield from super().generate_story_stream(prompt, target_chapters)
+
+
 def test_build_story_response_payload():
     payload = build_story_response_payload(
         {
@@ -103,9 +121,14 @@ def test_mode_helpers():
     assert overrides["target_chapters"] == 5
     assert overrides["target_chapter_length"] == 2200
     assert (
-        build_request_overrides({"chapter_length": 99999})["target_chapter_length"]
+        build_request_overrides(
+            {"mode": "deep", "chapter_length": 99999}
+        )["target_chapter_length"]
         == 5000
     )
+    assert build_request_overrides(
+        {"mode": "quick", "chapter_length": 5000}
+    )["target_chapter_length"] == 5000
     assert overrides["fast_mode"] is False
 
     config = build_runtime_config(workflow_mode="deep", target_chapter_length=2400)
@@ -113,6 +136,166 @@ def test_mode_helpers():
     assert config["fast_mode"] is False
     assert config["max_revision_rounds"] >= 3
     assert config["target_chapter_length"] == 2400
+
+
+def test_author_style_is_validated_and_reaches_agent_config():
+    overrides = build_request_overrides({"author_style": "yu_hua"})
+    config = build_runtime_config(author_style=overrides["author_style"])
+    prompt = enrich_generation_prompt(
+        "Write a short story.",
+        {"author_style": "yu_hua", "genre": "现实文学"},
+    )
+
+    assert overrides["author_style"] == "yu_hua"
+    assert config["author_style_label"] == "余华"
+    assert "plainspoken narration" in config["author_style_guidance"]
+    assert "Reference author: 余华" in prompt
+    assert build_request_overrides({"author_style": "unknown"})["author_style"] == ""
+
+
+def test_workshop_limits_allow_unbounded_deep_chapters_but_enforce_other_modes():
+    assert validate_workshop_request(
+        {"mode": "quick", "chapters": 25, "chapter_length": 5000}
+    ) == ("quick", 25, 5000)
+    assert validate_workshop_request(
+        {"mode": "standard", "chapters": 30, "chapter_length": 5000}
+    ) == ("standard", 30, 5000)
+    assert validate_workshop_request(
+        {"mode": "deep", "chapters": 27, "chapter_length": 5000}
+    ) == ("deep", 27, 5000)
+
+    assert validate_workshop_request(
+        {"mode": "standard", "chapters": 1, "chapter_length": 5100}
+    ) == ("standard", 1, 5000)
+
+
+def test_background_task_can_pause_resume_and_complete(tmp_path, monkeypatch):
+    monkeypatch.setitem(server_module.DEFAULT_STORY_CONFIG, "results_dir", str(tmp_path))
+    server = create_server(
+        "127.0.0.1",
+        0,
+        graph_factory=lambda config: _FakeGraph(config),
+        h5_dir=H5_DIR,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.1)
+
+    try:
+        create_request = Request(
+            f"http://127.0.0.1:{port}/api/storyagents/tasks",
+            data=json.dumps(
+                {
+                    "prompt": "Write a suspense story.",
+                    "chapters": 2,
+                    "chapter_length": 1500,
+                    "mode": "standard",
+                    "confirm_outline": False,
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(create_request, timeout=5) as response:
+            created = json.loads(response.read().decode("utf-8"))
+        task_id = created["task_id"]
+
+        deadline = time.time() + 5
+        snapshot = created
+        while time.time() < deadline and snapshot["status"] not in {"completed", "failed"}:
+            with urlopen(
+                f"http://127.0.0.1:{port}/api/storyagents/tasks/{task_id}?after=0",
+                timeout=5,
+            ) as response:
+                snapshot = json.loads(response.read().decode("utf-8"))
+            time.sleep(0.05)
+
+        assert snapshot["status"] == "completed"
+        assert snapshot["story_id"]
+        assert any(event.get("event") == "node_complete" for event in snapshot["events"])
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_background_task_waits_for_outline_approval(tmp_path, monkeypatch):
+    monkeypatch.setitem(server_module.DEFAULT_STORY_CONFIG, "results_dir", str(tmp_path))
+    server = create_server(
+        "127.0.0.1",
+        0,
+        graph_factory=lambda config: _OutlineGraph(config),
+        h5_dir=H5_DIR,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{port}/api/storyagents/tasks",
+            data=json.dumps({
+                "prompt": "Write a suspense story.",
+                "chapters": 1,
+                "mode": "standard",
+                "confirm_outline": True,
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=5) as response:
+            task_id = json.loads(response.read().decode("utf-8"))["task_id"]
+
+        deadline = time.time() + 3
+        snapshot = {}
+        while time.time() < deadline:
+            with urlopen(f"http://127.0.0.1:{port}/api/storyagents/tasks/{task_id}", timeout=5) as response:
+                snapshot = json.loads(response.read().decode("utf-8"))
+            if snapshot["status"] == "awaiting_outline":
+                break
+            time.sleep(0.03)
+        assert snapshot["status"] == "awaiting_outline"
+
+        approve = Request(
+            f"http://127.0.0.1:{port}/api/storyagents/tasks/{task_id}/approve-outline",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(approve, timeout=5) as response:
+            approved = json.loads(response.read().decode("utf-8"))
+        assert approved["status"] == "running"
+
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            with urlopen(f"http://127.0.0.1:{port}/api/storyagents/tasks/{task_id}", timeout=5) as response:
+                snapshot = json.loads(response.read().decode("utf-8"))
+            if snapshot["status"] == "completed":
+                break
+            time.sleep(0.03)
+        assert snapshot["status"] == "completed"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_continuation_limits_are_mode_specific():
+    assert validate_continuation_request(
+        {"mode": "quick", "continue_chapters": 3}, used_continuations=1
+    ) == ("quick", 3)
+    assert validate_continuation_request(
+        {"mode": "deep", "continue_chapters": 29}, used_continuations=99
+    ) == ("deep", 29)
+
+    with pytest.raises(ValueError, match="故事工坊最多续写 2 次"):
+        validate_continuation_request(
+            {"mode": "standard", "continue_chapters": 1}, used_continuations=2
+        )
+    with pytest.raises(ValueError, match="灵感工坊每次续写最多 3 章"):
+        validate_continuation_request(
+            {"mode": "quick", "continue_chapters": 4}, used_continuations=0
+        )
 
 
 def test_storyagents_server_health_and_draft_endpoint():
@@ -163,6 +346,9 @@ def test_storyagents_server_health_and_draft_endpoint():
         assert html.index("/h5/sse.js") < html.index("/h5/app.js")
         assert "/h5/app.js" in html
         assert 'name="chapter_length"' in html
+        assert 'id="confirm-preview-button"' in html
+        assert 'id="outline-gate"' in html
+        assert 'id="workflow-map-panel"' in html
 
         with urlopen(f"http://127.0.0.1:{port}/h5/sse.js", timeout=5) as response:
             sse_helper = response.read().decode("utf-8")

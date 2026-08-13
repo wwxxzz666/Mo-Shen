@@ -104,17 +104,17 @@
       </view>
       <view class="param-item">
         <text class="param-label">章节数</text>
-        <slider 
-          class="param-slider" 
-          min="1" max="12" 
-          value="{{chapters}}" 
-          show-value
-          activeColor="#ffd700"
-          backgroundColor="rgba(255,255,255,0.1)"
-          block-size="24"
-          block-color="#ffd700"
-          bindchange="onChaptersChange"
-        />
+        <input class="param-input" type="number" value="{{chapters}}" bindinput="onChaptersChange" placeholder="不限制章节数" />
+      </view>
+      <view class="param-item">
+        <text class="param-label">每章字数（最多 5000）</text>
+        <slider class="param-slider" min="300" max="5000" step="100" value="{{chapterLength}}" show-value bindchange="onChapterLengthChange" />
+      </view>
+      <view class="param-item">
+        <text class="param-label">参考作家（单选）</text>
+        <picker range="{{authorStyles}}" range-key="label" value="{{authorStyleIndex}}" bindchange="onAuthorStyleChange">
+          <view class="param-input">{{authorStyles[authorStyleIndex].label}}</view>
+        </picker>
       </view>
     </view>
   </view>

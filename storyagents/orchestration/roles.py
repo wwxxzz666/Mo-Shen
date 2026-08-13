@@ -30,6 +30,7 @@ from .prompts import (
     worldbuilder_prompt,
     writer_prompt,
 )
+from .formatting import ensure_chapter_summaries, normalize_chapter_text, render_manuscript
 
 
 def _fallback_beats(target_chapters: int) -> list[str]:
@@ -198,9 +199,10 @@ def _apply_writer(
     text: str,
     _config: dict,
 ) -> Dict[str, Any]:
+    normalized = normalize_chapter_text(text)
     return {
-        "messages": [("ai", text)],
-        "current_chapter_draft": text,
+        "messages": [("ai", normalized)],
+        "current_chapter_draft": normalized,
     }
 
 
@@ -271,18 +273,17 @@ def _apply_showrunner(
     if chapter_index >= target_chapters:
         status = ShowrunnerStatus.COMPLETE
 
-    accepted_chapters = list(state.get("chapters", []))
+    accepted_chapters = [normalize_chapter_text(item) for item in state.get("chapters", [])]
     accepted_summaries = list(state.get("chapter_summaries", []))
 
     if len(accepted_chapters) < chapter_index:
-        accepted_chapters.append(state["current_chapter_draft"])
-    if len(accepted_summaries) < chapter_index:
-        accepted_summaries.append(state.get("current_chapter_summary") or "")
+        current_chapter = normalize_chapter_text(state.get("current_chapter_draft"))
+        if not current_chapter:
+            raise RuntimeError(f"Chapter {chapter_index} is empty and cannot be accepted.")
+        accepted_chapters.append(current_chapter)
 
-    final_manuscript = "\n\n".join(
-        f"# Chapter {idx}\n\n{chapter}"
-        for idx, chapter in enumerate(accepted_chapters, start=1)
-    )
+    accepted_summaries = ensure_chapter_summaries(accepted_chapters, accepted_summaries)
+    final_manuscript = render_manuscript(accepted_chapters)
 
     updates: Dict[str, Any] = {
         "messages": [("ai", editorial_note)],

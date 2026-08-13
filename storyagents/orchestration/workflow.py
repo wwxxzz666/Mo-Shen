@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, AsyncGenerator, Dict, Optional
 
 from .roles import StoryRoleAgent, build_role_agents
+from .formatting import validate_completed_story
 from .routing import StoryConditionalLogic
 from .state import create_initial_state
 
@@ -34,6 +35,15 @@ class StoryWorkflow:
         )
         self.max_steps = int(config.get("max_recur_limit", 80))
 
+    def _required_step_budget(self, target_chapters: int) -> int:
+        """Reserve enough room for every chapter's writer/reviewer loop."""
+        setup_steps = 2 + (2 if self.include_worldbuilding else 0)
+        if self.include_continuity_review:
+            per_chapter = (2 * self.logic.max_revision_rounds) + 1
+        else:
+            per_chapter = 2
+        return setup_steps + (max(1, int(target_chapters)) * per_chapter)
+
     async def _run_role(
         self,
         name: str,
@@ -58,9 +68,13 @@ class StoryWorkflow:
             "chapter_summaries": state.get("chapter_summaries", []),
             "continuity_notes": state.get("continuity_notes", ""),
             "showrunner_status": state.get("showrunner_status", ""),
+            "reviewer_verdict": state.get("reviewer_verdict", ""),
+            "revision_count": state.get("revision_count", 0),
+            "showrunner_note": state.get("showrunner_note", ""),
             "final_manuscript": state.get("final_manuscript", ""),
             "target_chapters": chapter_count,
             "target_chapter_length": state.get("target_chapter_length", 1500),
+            "workflow_mode": self.workflow_mode,
         }
 
     async def run(
@@ -88,6 +102,10 @@ class StoryWorkflow:
             user_request,
             target_chapters,
             int(self.config.get("target_chapter_length", 1500)),
+        )
+        self.max_steps = max(
+            int(self.config.get("max_recur_limit", 80)),
+            self._required_step_budget(target_chapters),
         )
         steps = 0
 
@@ -133,6 +151,8 @@ class StoryWorkflow:
             if self.logic.after_showrunner(state) == "Chapter Writer":
                 continue
             break
+
+        validate_completed_story(state, target_chapters)
 
         yield {
             "event": "story_complete",

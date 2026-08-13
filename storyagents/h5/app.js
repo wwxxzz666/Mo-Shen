@@ -17,12 +17,13 @@ const AGENT_LIBRARY = {
 
 const WORKFLOW_MODES = {
   quick: {
-    label: "快速出稿",
+    label: "灵感工坊",
     chip: "4 节点",
     summary: "直接从 brief 到章节出稿，适合试题材、试节奏和快速起篇。",
     logIntro: "当前是「快速出稿」模式，会走四段式创作流程，优先把故事尽快成形。",
     agents: ["Planner", "Outline Agent", "Chapter Writer", "Showrunner"],
     artifacts: ["storyBrief", "outline", "chapter", "manuscript"],
+    limits: { maxChapters: null, maxChapterLength: 5000, maxContinuationChapters: 3, maxContinuations: 2 },
     phases: [
       { label: "正在整理创作需求...", target: 16 },
       { label: "正在规划章节大纲...", target: 42 },
@@ -31,12 +32,13 @@ const WORKFLOW_MODES = {
     ],
   },
   standard: {
-    label: "标准创作",
+    label: "故事工坊",
     chip: "6 节点",
     summary: "补齐世界观和角色层，再进入大纲与正文，更适合中篇和稳定连载。",
     logIntro: "当前是「标准创作」模式，会先补设定和角色，再推进大纲与正文。",
     agents: ["Planner", "Worldbuilder", "Character Designer", "Outline Agent", "Chapter Writer", "Showrunner"],
     artifacts: ["storyBrief", "world", "characters", "outline", "chapter", "manuscript"],
+    limits: { maxChapters: null, maxChapterLength: 5000, maxContinuationChapters: 5, maxContinuations: 2 },
     phases: [
       { label: "正在整理创作需求...", target: 12 },
       { label: "正在扩展世界观与角色设定...", target: 38 },
@@ -46,12 +48,13 @@ const WORKFLOW_MODES = {
     ],
   },
   deep: {
-    label: "深度打磨",
+    label: "长篇工坊",
     chip: "7 节点",
     summary: "在标准模式上加入连续性审校，更适合长篇、伏笔密集和一致性要求高的项目。",
     logIntro: "当前是「深度打磨」模式，会额外加入连续性审校，优先保证人设与设定稳定。",
     agents: ["Planner", "Worldbuilder", "Character Designer", "Outline Agent", "Chapter Writer", "Continuity Reviewer", "Showrunner"],
     artifacts: ["storyBrief", "world", "characters", "outline", "chapter", "manuscript"],
+    limits: { maxChapters: null, maxChapterLength: 5000, maxContinuationChapters: null, maxContinuations: null },
     phases: [
       { label: "正在整理创作需求...", target: 10 },
       { label: "正在扩展世界观与角色设定...", target: 34 },
@@ -61,6 +64,24 @@ const WORKFLOW_MODES = {
       { label: "正在整理最终成稿...", target: 96 },
     ],
   },
+};
+
+const MODE_PRESETS = {
+  quick: [
+    { label: "灵感速写", tag: "15 MIN", genre: "都市 / 短篇", tone: "轻快、直接、有画面感", audience: "全年龄", prompt: "写一个三幕结构的短篇故事，用一个强烈场景快速建立人物、冲突和结尾反转。" },
+    { label: "悬念开场", tag: "HOOK FIRST", genre: "悬疑 / 推理", tone: "冷静、紧张、节奏明快", audience: "成年向", prompt: "写一个以神秘事件开场的短篇悬疑故事，第一段就抛出问题，并在结尾留下钩子。" },
+    { label: "一章试读", tag: "PILOT", genre: "科幻 / 近未来", tone: "克制、锋利、带科技感", audience: "成年向", prompt: "写一章适合作为长篇试读的科幻故事，突出主角、世界规则和一个必须立刻解决的危机。" },
+  ],
+  standard: [
+    { label: "连载起稿", tag: "SERIES", genre: "都市 / 成长", tone: "细腻、稳定、带情绪推进", audience: "全年龄", prompt: "规划一部适合连载的成长故事，先建立人物关系和日常世界，再逐步引出主线冲突。" },
+    { label: "世界观搭建", tag: "WORLD BUILD", genre: "奇幻 / 冒险", tone: "宏大、清晰、富有探索感", audience: "全年龄", prompt: "构建一个规则明确的奇幻世界，设计势力、资源、禁忌和主角必须承担的使命。" },
+    { label: "人物群像", tag: "ENSEMBLE", genre: "现实 / 群像", tone: "真实、克制、关系复杂", audience: "成年向", prompt: "创作一组彼此牵动的角色，让每个人都有独立目标，并通过共同事件推动关系变化。" },
+  ],
+  deep: [
+    { label: "长篇工程", tag: "LONG FORM", genre: "史诗 / 奇幻", tone: "厚重、沉浸、伏笔密集", audience: "成年向", prompt: "设计一部多线并进的长篇故事，建立历史、阵营、人物弧光与可回收的长期伏笔。" },
+    { label: "连续性审校", tag: "CANON CHECK", genre: "悬疑 / 长篇", tone: "严谨、压迫、逻辑导向", audience: "成年向", prompt: "创作一个线索密集的长篇悬疑项目，明确时间线、证据链、人物动机和真相揭示节奏。" },
+    { label: "多线叙事", tag: "MULTI-THREAD", genre: "科幻 / 社会寓言", tone: "冷峻、复杂、具有思辨性", audience: "成年向", prompt: "构建一个多视角科幻故事，让不同角色面对同一系统危机，并在最终章节汇合各条叙事线。" },
+  ],
 };
 
 /* ---- Style Presets ---- */
@@ -122,6 +143,10 @@ const state = {
   chapterSummaries: [],
   continuityNotes: "",
   targetChapterLength: 1500,
+  taskId: null,
+  taskCursor: 0,
+  taskStatus: "idle",
+  previewConfirmed: false,
 };
 
 const form = document.querySelector("#story-form");
@@ -132,13 +157,26 @@ const chapterLengthSlider = document.querySelector("#chapter-length");
 const chapterLengthCount = document.querySelector("#chapter-length-count");
 const modeGrid = document.querySelector("#mode-grid");
 const modeSummary = document.querySelector("#mode-summary");
+const modePresets = document.querySelector("#mode-presets");
+const modePresetsHint = document.querySelector("#mode-presets-hint");
 const chips = Array.from(document.querySelectorAll(".chip"));
 const submitButton = document.querySelector("#submit-button");
+const previewButton = document.querySelector("#preview-button");
+const stylePreview = document.querySelector("#style-preview");
+const stylePreviewText = document.querySelector("#style-preview-text");
+const retryPreviewButton = document.querySelector("#retry-preview-button");
+const confirmPreviewButton = document.querySelector("#confirm-preview-button");
+const outlineGate = document.querySelector("#outline-gate");
+const outlineGateContent = document.querySelector("#outline-gate-content");
+const approveOutlineButton = document.querySelector("#approve-outline-button");
 const runState = document.querySelector("#run-state");
 const agentList = document.querySelector("#agent-list");
 const artifactTabs = document.querySelector("#artifact-tabs");
 const artifactContent = document.querySelector("#artifact-content");
 const activityLog = document.querySelector("#activity-log");
+const workflowGraph = document.querySelector("#workflow-graph");
+const topbarStreamText = document.querySelector("#topbar-stream-text");
+const mapStatusText = document.querySelector("#map-status-text");
 const agentCardTemplate = document.querySelector("#agent-card-template");
 const progressPanel = document.querySelector("#progress-panel");
 const progressFill = document.querySelector("#progress-fill");
@@ -173,9 +211,74 @@ function getVisibleArtifactDefs(mode = state.mode) {
   return ARTIFACT_DEFS.filter((artifact) => visibleKeys.has(artifact.key));
 }
 
+const STUDIO_COPY = {
+  quick: {
+    kicker: "灵感工坊 / QUICK",
+    title: "把一个想法，快速变成故事",
+    description: "适合试题材、试风格和快速起稿。只要写下你的核心想法，智能体会直接推进到可读初稿。",
+    promptTitle: "故事需求 / 大纲",
+    promptHint: "写下人物、场景、冲突、结局方向，或任何还没成形的想法。",
+    placeholder: "例如：一个失去记忆的剑客，在暴雨夜收到一封来自未来的信……",
+  },
+  standard: {
+    kicker: "故事工坊 / STANDARD",
+    title: "先搭好故事，再开始写",
+    description: "适合中篇和稳定连载。智能体会先补齐世界、角色与大纲，再进入章节创作。",
+    promptTitle: "故事需求 / 大纲",
+    promptHint: "描述你想讲的故事，以及你希望读者记住的核心冲突。",
+    placeholder: "例如：一座只在午夜出现的城市，收留所有不愿醒来的人……",
+  },
+  deep: {
+    kicker: "长篇工坊 / DEEP",
+    title: "让复杂的长篇，保持清晰",
+    description: "适合长篇、群像和伏笔密集的项目。智能体会增加连续性审校，持续维护设定和人物弧线。",
+    promptTitle: "故事需求 / 大纲",
+    promptHint: "尽量写清楚世界规则、人物关系、主线冲突和你想埋下的长期伏笔。",
+    placeholder: "例如：在被海水淹没的记忆城，七个阵营争夺最后一枚真实的记忆……",
+  },
+};
+
+function updateStudioCopy() {
+  const copy = STUDIO_COPY[normalizeWorkflowMode(state.mode)];
+  if (!copy) return;
+  const header = document.querySelector(".studio-left-panel .panel-header");
+  header?.querySelector(".panel-kicker")?.replaceChildren(copy.kicker);
+  header?.querySelector(".panel-title")?.replaceChildren(copy.title);
+  const description = document.querySelector("#studio-description");
+  if (description) description.textContent = copy.description;
+  const promptSection = promptInput?.closest(".panel-section");
+  promptSection?.querySelector(".section-title")?.replaceChildren(copy.promptTitle);
+  promptInput?.setAttribute("placeholder", copy.placeholder);
+  const oldSummary = document.querySelector("#mode-summary");
+  if (oldSummary) oldSummary.textContent = copy.description;
+  const hint = promptSection?.querySelector(".section-caption");
+  if (hint) hint.textContent = copy.promptHint;
+}
+
+function showStudioRunView(isRunning) {
+  document.body.classList.toggle("is-running", isRunning);
+  document.querySelector(".studio-layout")?.classList.toggle("is-run-view", isRunning);
+  document.querySelector("#studio-setup-view")?.classList.toggle("is-hidden", isRunning);
+  document.querySelector("#studio-run-view")?.classList.toggle("is-hidden", !isRunning);
+  document.querySelector("#workflow-map-panel")?.classList.toggle("is-hidden", !isRunning);
+  document.querySelector("#studio-chat-shell")?.classList.toggle("is-hidden", !isRunning);
+  document.querySelector("#studio-output")?.classList.toggle("is-hidden", !isRunning);
+  if (!isRunning) document.querySelector("#artifact-panel")?.classList.add("is-collapsed");
+}
+
+function openStudio(mode, { updateHash = true } = {}) {
+  setWorkflowMode(mode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
+  showStudioRunView(false);
+  switchView("studio");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (updateHash) window.history.replaceState(null, "", `#studio/${normalizeWorkflowMode(mode)}`);
+}
+
 function updateWorkflowModeUi() {
   const mode = normalizeWorkflowMode(state.mode);
   const config = getWorkflowConfig(mode);
+  updateStudioCopy();
+  applyWorkshopLimits(config);
   if (modeSummary) {
     modeSummary.textContent = `${config.label} · ${config.summary}`;
   }
@@ -191,6 +294,64 @@ function updateWorkflowModeUi() {
   }
 }
 
+function applyWorkshopLimits(config) {
+  const limits = config.limits;
+  if (chapterSlider && chapterCount) {
+    const requested = Math.max(1, Number(chapterSlider.value) || 1);
+    const chapters = limits.maxChapters ? Math.min(requested, limits.maxChapters) : requested;
+    chapterSlider.value = String(chapters);
+    if (limits.maxChapters) {
+      chapterSlider.max = String(limits.maxChapters);
+      chapterSlider.title = `最多 ${limits.maxChapters} 章`;
+      chapterCount.textContent = `${chapters} 章 · 最多 ${limits.maxChapters} 章`;
+    } else {
+      chapterSlider.removeAttribute("max");
+      chapterSlider.title = "章节数不设上限";
+      chapterCount.textContent = `${chapters} 章 · 不设上限`;
+    }
+  }
+
+  if (chapterLengthSlider && chapterLengthCount) {
+    const requested = Math.max(300, Number(chapterLengthSlider.value) || 1500);
+    const length = Math.min(requested, limits.maxChapterLength);
+    chapterLengthSlider.max = String(limits.maxChapterLength);
+    chapterLengthSlider.value = String(length);
+    chapterLengthSlider.title = `每章最多 ${limits.maxChapterLength} 字`;
+    chapterLengthCount.textContent = `${length} 字 · 最多 ${limits.maxChapterLength} 字`;
+  }
+}
+
+function renderModePresets() {
+  if (!modePresets) return;
+  const mode = normalizeWorkflowMode(state.mode);
+  const presets = MODE_PRESETS[mode] || [];
+  modePresets.innerHTML = "";
+  if (modePresetsHint) {
+    modePresetsHint.textContent = `${getWorkflowConfig(mode).label} · 选择一个固定方案快速开始`;
+  }
+  presets.forEach((preset) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mode-preset-card";
+    button.innerHTML = `<span class="mode-preset-tag">${preset.tag}</span><strong>${preset.label}</strong><small>${preset.genre} · ${preset.tone}</small>`;
+    button.addEventListener("click", () => {
+      const genre = document.querySelector("#genre");
+      const tone = document.querySelector("#tone");
+      const audience = document.querySelector("#audience");
+      if (genre) genre.value = preset.genre;
+      if (tone) tone.value = preset.tone;
+      if (audience) audience.value = preset.audience;
+      if (promptInput) {
+        promptInput.value = preset.prompt;
+        promptInput.focus();
+      }
+      modePresets.querySelectorAll(".mode-preset-card").forEach((card) => card.classList.remove("is-selected"));
+      button.classList.add("is-selected");
+    });
+    modePresets.appendChild(button);
+  });
+}
+
 function setWorkflowMode(mode, options = {}) {
   const {
     rerenderAgents = false,
@@ -199,6 +360,7 @@ function setWorkflowMode(mode, options = {}) {
   } = options;
   state.mode = normalizeWorkflowMode(mode);
   updateWorkflowModeUi();
+  renderModePresets();
   if (rerenderAgents) {
     renderAgentCards();
     resetAgentStatuses();
@@ -224,9 +386,12 @@ function switchView(viewName) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("is-active"));
   const target = document.querySelector(`#view-${viewName}`);
   if (target) target.classList.add("is-active");
+  if (viewName !== "studio") document.body.classList.remove("is-running");
 
   document.querySelectorAll(".topbar-item").forEach((btn) => {
-    btn.classList.toggle("is-active", btn.dataset.view === viewName);
+    const isStudio = viewName === "studio" && btn.dataset.studioMode === normalizeWorkflowMode(state.mode);
+    const isLegacyStudio = btn.dataset.view === "studio" && !btn.dataset.studioMode;
+    btn.classList.toggle("is-active", isStudio || (!isLegacyStudio && !btn.dataset.studioMode && btn.dataset.view === viewName));
   });
 }
 
@@ -241,6 +406,17 @@ document.querySelectorAll("[data-goto]").forEach((el) => {
     if (el.dataset.goto) switchView(el.dataset.goto);
   });
 });
+
+document.querySelectorAll("[data-studio-mode]").forEach((el) => {
+  el.addEventListener("click", () => openStudio(el.dataset.studioMode));
+});
+
+function openStudioFromHash() {
+  const match = window.location.hash.match(/^#studio\/(quick|standard|deep)$/);
+  if (match) openStudio(match[1], { updateHash: false });
+}
+
+window.addEventListener("hashchange", openStudioFromHash);
 
 /* ---- Utilities ---- */
 function setProgress(value, label) {
@@ -305,6 +481,7 @@ function resetProgress() {
 /* ---- Agent Cards ---- */
 function renderAgentCards() {
   agentList.innerHTML = "";
+  if (workflowGraph) workflowGraph.innerHTML = "";
   getActiveAgents().forEach((agent, index) => {
     const fragment = agentCardTemplate.content.cloneNode(true);
     const card = fragment.querySelector(".agent-card");
@@ -313,6 +490,19 @@ function renderAgentCards() {
     fragment.querySelector(".agent-name").textContent = agent.name;
     fragment.querySelector(".agent-role").textContent = agent.role;
     agentList.appendChild(fragment);
+
+    if (workflowGraph) {
+      if (index > 0) {
+        const link = document.createElement("span");
+        link.className = "workflow-link";
+        workflowGraph.appendChild(link);
+      }
+      const node = document.createElement("div");
+      node.className = "workflow-node";
+      node.dataset.agent = agent.node;
+      node.innerHTML = `<span class="workflow-node-index">${String(index + 1).padStart(2, "0")}</span><strong>${agent.name}</strong><small>${agent.node}</small>`;
+      workflowGraph.appendChild(node);
+    }
   });
 }
 
@@ -334,6 +524,13 @@ function setAgentStatus(index, statusText, className) {
     card.classList.remove("is-active");
     card.classList.add("is-done");
   }
+  const agent = getActiveAgents()[index];
+  const graphNode = agent && workflowGraph?.querySelector(`[data-agent="${CSS.escape(agent.node)}"]`);
+  if (graphNode) {
+    graphNode.classList.toggle("is-active", className === "active");
+    graphNode.classList.toggle("is-done", className === "done");
+  }
+  if (mapStatusText && className === "active") mapStatusText.textContent = "RUNNING";
 }
 
 function resetAgentStatuses() {
@@ -349,6 +546,7 @@ function pushLog(title, message) {
   item.className = "activity-item";
   item.innerHTML = `<strong>${title}</strong><p>${message}</p>`;
   activityLog.prepend(item);
+  if (topbarStreamText) topbarStreamText.textContent = `${title} // ${message}`;
 }
 
 function resetLog() {
@@ -359,6 +557,9 @@ function resetLog() {
 /* ---- Artifacts ---- */
 function renderArtifactTabs() {
   const visibleArtifacts = getVisibleArtifactDefs();
+  if (state.artifacts.manuscript) {
+    state.activeArtifact = "manuscript";
+  }
   if (!visibleArtifacts.some((artifact) => artifact.key === state.activeArtifact)) {
     state.activeArtifact = visibleArtifacts[0]?.key || "storyBrief";
   }
@@ -508,6 +709,9 @@ function setRunState(text, className) {
   if (className) {
     runState.classList.add(className);
   }
+  if (mapStatusText) {
+    mapStatusText.textContent = className === "is-running" ? "RUNNING" : className === "is-done" ? "COMPLETE" : "STANDBY";
+  }
 }
 
 function scrollToOutput() {
@@ -612,6 +816,7 @@ async function runApiFlow(payload) {
   state.chapterSummaries = [];
   state.continuityNotes = "";
   switchView("studio");
+  showStudioRunView(true);
   scrollToOutput();
   startProgress("正在生成小说", getWorkflowConfig().phases);
   setRunState("请求中", "is-running");
@@ -633,6 +838,7 @@ async function runApiFlow(payload) {
         genre: payload.genre,
         tone: payload.tone,
         audience: payload.audience,
+        author_style: payload.authorStyle,
         chapters: Number(payload.chapters),
         chapter_length: Number(payload.chapterLength),
         mode: payload.mode,
@@ -670,7 +876,7 @@ async function runApiFlow(payload) {
 }
 
 /* ---- Streaming API Flow ---- */
-let currentAbortController = null;
+let taskPollCancelled = false;
 
 /* ---- Chat Message Helpers ---- */
 const NODE_ICONS = {
@@ -754,23 +960,141 @@ function clearChat() {
   `;
 }
 
-async function runApiFlowStream(payload) {
+function persistActiveTask(payload) {
+  if (!state.taskId) return;
+  localStorage.setItem("storyagents-active-task", JSON.stringify({
+    taskId: state.taskId,
+    cursor: state.taskCursor,
+    payload,
+  }));
+}
+
+function clearActiveTask() {
+  localStorage.removeItem("storyagents-active-task");
+  state.taskId = null;
+  state.taskCursor = 0;
+  state.taskStatus = "idle";
+}
+
+function processGenerationEvent(event) {
+  if (!event) return;
+  StoryAgentsSSE.assertSuccessfulEvent(event);
+
+  if (event.event === "node_complete") {
+    const { data, node } = StoryAgentsSSE.getNodeEventContext(event);
+    const agentIndex = getNodeToAgentMap()[node];
+    if (agentIndex !== undefined) {
+      setAgentStatus(agentIndex, "已完成", "done");
+      const nextIndex = agentIndex + 1;
+      if (nextIndex < getActiveAgents().length) {
+        setAgentStatus(nextIndex, "工作中", "active");
+      }
+    }
+
+    if (data.story_title) state.title = data.story_title;
+    if (data.story_id) state.storyId = data.story_id;
+    addChatMessage("agent", AGENT_LIBRARY[node]?.name || node, getNodeDescription(node));
+
+    if (data.current_chapter_draft && node === "Chapter Writer") {
+      const chapterIdx = data.current_chapter_index || state.chapters.length + 1;
+      addChatMessage("chapter", `第 ${chapterIdx} 章`, data.current_chapter_draft);
+    }
+
+    if (data.story_brief) state.artifacts.storyBrief = data.story_brief;
+    if (data.story_bible) state.artifacts.world = data.story_bible;
+    if (data.character_sheets) state.artifacts.characters = data.character_sheets;
+    if (data.plot_outline) state.artifacts.outline = data.plot_outline;
+    if (data.current_chapter_draft) state.artifacts.chapter = data.current_chapter_draft;
+    if (Array.isArray(data.chapters) && data.chapters.length > 0) {
+      state.chapters = data.chapters;
+      state.artifacts.manuscript = data.final_manuscript || data.chapters.join("\n\n");
+    }
+    if (Array.isArray(data.chapter_summaries)) state.chapterSummaries = data.chapter_summaries;
+    if (typeof data.continuity_notes === "string" && data.continuity_notes) {
+      state.continuityNotes = data.continuity_notes;
+    }
+
+    const chapterIndex = data.current_chapter_index || 0;
+    const targetChapters = data.target_chapters || 1;
+    if (chapterIndex > 0) {
+      const progress = Math.min(95, (chapterIndex / targetChapters) * 80 + 15);
+      setProgress(progress, `第 ${chapterIndex}/${targetChapters} 章`);
+    }
+    renderArtifactContent();
+  }
+
+  if (event.event === "story_saved") {
+    if (event.data?.story_id) state.storyId = event.data.story_id;
+    if (event.data?.workflow_mode) setWorkflowMode(event.data.workflow_mode);
+    loadHistory();
+  }
+
+  if (event.event === "story_complete") {
+    finishProgress("生成完成");
+    setRunState("已完成", "is-done");
+    addSystemMessage("所有章节已生成完毕。");
+  }
+}
+
+async function pollTask(payload) {
+  const stopButton = document.querySelector("#stop-button");
+  while (state.taskId && !taskPollCancelled) {
+    const response = await fetch(`/api/storyagents/tasks/${encodeURIComponent(state.taskId)}?after=${state.taskCursor}`);
+    const snapshot = await response.json();
+    if (!response.ok) throw new Error(snapshot.error || `HTTP ${response.status}`);
+
+    (snapshot.events || []).forEach(processGenerationEvent);
+    state.taskCursor = snapshot.next_cursor || state.taskCursor;
+    state.taskStatus = snapshot.status;
+    persistActiveTask(payload);
+
+    if (snapshot.status === "awaiting_outline") {
+      outlineGate?.classList.remove("is-hidden");
+      if (outlineGateContent) outlineGateContent.textContent = state.artifacts.outline || "大纲正在整理，请稍候……";
+      setRunState("等待确认大纲");
+      if (stopButton) stopButton.classList.add("is-hidden");
+    } else {
+      outlineGate?.classList.add("is-hidden");
+      if (stopButton && !["completed", "failed"].includes(snapshot.status)) {
+        stopButton.classList.remove("is-hidden");
+        stopButton.textContent = snapshot.status === "paused" ? "继续创作" : "完成本步骤后暂停";
+      }
+    }
+
+    if (snapshot.status === "completed") {
+      finishProgress("生成完成");
+      setRunState("已完成", "is-done");
+      localStorage.setItem("storyagents-h5-form", JSON.stringify(payload));
+      clearActiveTask();
+      break;
+    }
+    if (snapshot.status === "failed") {
+      throw new Error(snapshot.error || "生成任务失败");
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 800));
+  }
+}
+
+async function runApiFlowStream(payload, existingTask = null) {
   setWorkflowMode(payload.mode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
-  state.artifacts = {};
-  state.activeArtifact = "storyBrief";
-  state.storyId = null;
-  state.chapters = [];
-  state.chapterSummaries = [];
-  state.continuityNotes = "";
+  if (!existingTask) {
+    state.artifacts = {};
+    state.activeArtifact = "storyBrief";
+    state.storyId = null;
+    state.chapters = [];
+    state.chapterSummaries = [];
+    state.continuityNotes = "";
+    state.taskCursor = 0;
+  }
   switchView("studio");
+  showStudioRunView(true);
   startProgress("生成中", getWorkflowConfig().phases);
   setRunState("生成中", "is-running");
   submitButton.disabled = true;
   submitButton.textContent = "生成中...";
 
-  // Clear chat and show initial message
-  clearChat();
-  addSystemMessage("开始连接流式接口...");
+  if (!existingTask) clearChat();
+  addSystemMessage(existingTask ? "已恢复上次创作任务。" : "创作任务已提交，可以安全离开当前页面。" );
 
   // Show stop button
   const stopButton = document.querySelector("#stop-button");
@@ -778,176 +1102,42 @@ async function runApiFlowStream(payload) {
     stopButton.classList.remove("is-hidden");
   }
 
-  // Create abort controller
-  currentAbortController = new AbortController();
-
   try {
-    const response = await fetch("/api/storyagents/draft/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: payload.prompt,
-        genre: payload.genre,
-        tone: payload.tone,
-        audience: payload.audience,
-        chapters: Number(payload.chapters),
-        chapter_length: Number(payload.chapterLength),
-        mode: payload.mode,
-      }),
-      signal: currentAbortController.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let currentChapter = 0;
-    let lastNode = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-
-        let event;
-        try {
-          event = StoryAgentsSSE.parseEventLine(line);
-        } catch (parseError) {
-          console.warn("SSE parse error:", parseError);
-          continue;
-        }
-        if (!event) continue;
-        StoryAgentsSSE.assertSuccessfulEvent(event);
-
-          if (event.event === "node_complete") {
-            const { data, node } = StoryAgentsSSE.getNodeEventContext(event);
-
-            // Update agent status
-            const agentIndex = getNodeToAgentMap()[node];
-            if (agentIndex !== undefined) {
-              setAgentStatus(agentIndex, "已完成", "done");
-              const nextIndex = agentIndex + 1;
-              if (nextIndex < getActiveAgents().length) {
-                setAgentStatus(nextIndex, "工作中", "active");
-              }
-            }
-
-            // Update state
-            if (data.story_title) {
-              state.title = data.story_title;
-            }
-            if (data.story_id) {
-              state.storyId = data.story_id;
-            }
-
-            // Add chat message for node completion
-            const nodeDesc = getNodeDescription(node);
-            addChatMessage("agent", AGENT_LIBRARY[node]?.name || node, nodeDesc);
-
-            // If there's a chapter draft, add it as a chapter message
-            if (data.current_chapter_draft && node === "Chapter Writer") {
-              const chapterIdx = data.current_chapter_index || currentChapter + 1;
-              addChatMessage("chapter", `第 ${chapterIdx} 章`, data.current_chapter_draft);
-              currentChapter = chapterIdx;
-            }
-
-            // Update artifacts
-            if (data.story_brief) {
-              state.artifacts.storyBrief = data.story_brief;
-            }
-            if (data.story_bible) {
-              state.artifacts.world = data.story_bible;
-            }
-            if (data.character_sheets) {
-              state.artifacts.characters = data.character_sheets;
-            }
-            if (data.plot_outline) {
-              state.artifacts.outline = data.plot_outline;
-            }
-            if (data.current_chapter_draft) {
-              state.artifacts.chapter = data.current_chapter_draft;
-            }
-            if (data.chapters && data.chapters.length > 0) {
-              state.chapters = data.chapters;
-              state.artifacts.manuscript = data.final_manuscript || data.chapters.join("\n\n");
-            }
-            if (Array.isArray(data.chapter_summaries)) {
-              state.chapterSummaries = data.chapter_summaries;
-            }
-            if (typeof data.continuity_notes === "string" && data.continuity_notes) {
-              state.continuityNotes = data.continuity_notes;
-            }
-
-            // Update progress
-            const chapterIndex = data.current_chapter_index || 0;
-            const targetChapters = data.target_chapters || 3;
-            if (chapterIndex > 0) {
-              const progress = Math.min(95, (chapterIndex / targetChapters) * 80 + 15);
-              setProgress(progress, `第 ${chapterIndex}/${targetChapters} 章`);
-            }
-
-            lastNode = node;
-          }
-
-          if (event.event === "story_saved") {
-            if (event.data?.story_id) {
-              state.storyId = event.data.story_id;
-            }
-            if (event.data?.workflow_mode) {
-              setWorkflowMode(event.data.workflow_mode);
-            }
-            loadHistory();
-          }
-
-          if (event.event === "story_complete") {
-            finishProgress("生成完成");
-            setRunState("已完成", "is-done");
-            addSystemMessage("🎉 所有章节已生成完毕！");
-
-            // Show final manuscript in chat
-            if (state.artifacts.manuscript) {
-              addChatMessage("chapter", "最终成稿", state.artifacts.manuscript);
-            }
-
-            Array.from(document.querySelectorAll(".agent-card")).forEach((card) => {
-              if (!card.classList.contains("is-done")) {
-                card.classList.add("is-done");
-                card.querySelector(".agent-status").textContent = "已完成";
-              }
-            });
-
-            localStorage.setItem("storyagents-h5-form", JSON.stringify(payload));
-          }
-
-      }
-    }
-  } catch (error) {
-    if (error.name === "AbortError") {
-      addSystemMessage("⏹ 已停止生成。");
-      failProgress("已停止生成");
-      setRunState("已停止");
+    taskPollCancelled = false;
+    if (existingTask) {
+      state.taskId = existingTask.taskId;
+      state.taskCursor = Number(existingTask.cursor || 0);
     } else {
-      addSystemMessage(`❌ 生成失败：${error.message}`);
-      failProgress("生成失败，请检查网络或稍后重试");
-      setRunState("出错");
+      const response = await fetch("/api/storyagents/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: payload.prompt,
+          genre: payload.genre,
+          tone: payload.tone,
+          audience: payload.audience,
+          author_style: payload.authorStyle,
+          chapters: Number(payload.chapters),
+          chapter_length: Number(payload.chapterLength),
+          mode: payload.mode,
+          confirm_outline: payload.mode !== "quick",
+        }),
+      });
+      const created = await response.json();
+      if (!response.ok) throw new Error(created.error || `HTTP ${response.status}`);
+      state.taskId = created.task_id;
+      state.taskCursor = 0;
+      persistActiveTask(payload);
     }
+    await pollTask(payload);
+  } catch (error) {
+    addSystemMessage(`生成失败：${error.message}`);
+    failProgress("生成失败，请检查网络或稍后重试");
+    setRunState("出错");
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = "重新提交";
-    currentAbortController = null;
-
-    // Hide stop button
-    const stopButton = document.querySelector("#stop-button");
-    if (stopButton) {
+    if (stopButton && !state.taskId) {
       stopButton.classList.add("is-hidden");
     }
   }
@@ -974,10 +1164,74 @@ function readForm() {
     genre: String(formData.get("genre") || "").trim(),
     tone: String(formData.get("tone") || "").trim(),
     audience: String(formData.get("audience") || "").trim(),
+    authorStyle: String(formData.get("author_style") || "").trim(),
     mode: normalizeWorkflowMode(formData.get("workflow_mode") || state.mode),
     chapters: String(formData.get("chapters") || "3"),
     chapterLength: String(formData.get("chapter_length") || "1500"),
   };
+}
+
+async function runStylePreview() {
+  const payload = readForm();
+  if (!payload.prompt) {
+    promptInput.focus();
+    return;
+  }
+  if (!previewButton || !stylePreview || !stylePreviewText) return;
+
+  previewButton.disabled = true;
+  state.previewConfirmed = false;
+  submitButton.disabled = true;
+  submitButton.textContent = "确认风格后开始";
+  previewButton.textContent = "正在生成预览...";
+  stylePreview.classList.remove("is-hidden");
+  stylePreviewText.textContent = "正在以当前工坊、题材、语气和参考作家生成约 200 字试读……";
+
+  try {
+    const response = await fetch("/api/storyagents/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: payload.prompt,
+        genre: payload.genre,
+        tone: payload.tone,
+        audience: payload.audience,
+        author_style: payload.authorStyle,
+        chapters: Number(payload.chapters),
+        chapter_length: Number(payload.chapterLength),
+        mode: payload.mode,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    stylePreviewText.textContent = data.preview || "预览没有返回内容，请再试一次。";
+    confirmPreviewButton?.removeAttribute("disabled");
+  } catch (error) {
+    stylePreviewText.textContent = `预览失败：${error.message}`;
+  } finally {
+    previewButton.disabled = false;
+    previewButton.textContent = "预览风格（约 200 字）";
+  }
+}
+
+function invalidatePreviewConfirmation() {
+  if (!state.previewConfirmed) return;
+  state.previewConfirmed = false;
+  submitButton.disabled = true;
+  submitButton.textContent = "内容已改变，请重新预览";
+}
+
+async function restoreActiveTask() {
+  const raw = localStorage.getItem("storyagents-active-task");
+  if (!raw) return;
+  try {
+    const active = JSON.parse(raw);
+    if (!active.taskId || !active.payload) return;
+    await runApiFlowStream(active.payload, active);
+  } catch (error) {
+    console.warn("恢复创作任务失败", error);
+    localStorage.removeItem("storyagents-active-task");
+  }
 }
 
 function hydrateStoredForm() {
@@ -987,9 +1241,11 @@ function hydrateStoredForm() {
   }
   try {
     const data = JSON.parse(raw);
-    ["prompt", "genre", "tone", "audience"].forEach((key) => {
-      if (typeof data[key] === "string" && document.querySelector(`#${key}`)) {
-        document.querySelector(`#${key}`).value = data[key];
+    ["prompt", "genre", "tone", "audience", "authorStyle"].forEach((key) => {
+      const fieldId = key === "authorStyle" ? "author-style" : key;
+      const field = document.querySelector(`#${fieldId}`);
+      if (typeof data[key] === "string" && field) {
+        field.value = data[key];
       }
     });
     if (data.chapters) {
@@ -1012,12 +1268,12 @@ function hydrateStoredForm() {
 
 function bootstrap() {
   chapterSlider.addEventListener("input", (event) => {
-    chapterCount.textContent = `${event.target.value} 章`;
+    applyWorkshopLimits(getWorkflowConfig());
   });
 
   if (chapterLengthSlider && chapterLengthCount) {
     chapterLengthSlider.addEventListener("input", (event) => {
-      chapterLengthCount.textContent = `${event.target.value} 字`;
+      applyWorkshopLimits(getWorkflowConfig());
     });
   }
 
@@ -1036,6 +1292,7 @@ function bootstrap() {
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
       promptInput.value = chip.dataset.prompt || "";
+      invalidatePreviewConfirmation();
       promptInput.focus();
     });
   });
@@ -1058,6 +1315,7 @@ function bootstrap() {
         if (!promptInput.value.trim()) {
           promptInput.value = preset.prompt_hint;
         }
+        invalidatePreviewConfirmation();
 
         // Highlight selected preset
         presetGrid.querySelectorAll(".preset-card").forEach((c) => c.classList.remove("is-selected"));
@@ -1075,23 +1333,82 @@ function bootstrap() {
       promptInput.focus();
       return;
     }
+    if (!state.previewConfirmed) {
+      stylePreview?.classList.remove("is-hidden");
+      if (stylePreviewText && !stylePreviewText.textContent.trim()) {
+        stylePreviewText.textContent = "请先生成约 200 字试写并确认风格，再开始正式创作。";
+      }
+      return;
+    }
     await runApiFlowStream(payload);
   });
 
-  // Stop button
+  if (previewButton) {
+    previewButton.addEventListener("click", runStylePreview);
+  }
+  retryPreviewButton?.addEventListener("click", runStylePreview);
+  confirmPreviewButton?.addEventListener("click", () => {
+    state.previewConfirmed = true;
+    submitButton.disabled = false;
+    submitButton.textContent = "确认风格，开始生成";
+    stylePreview?.classList.add("is-confirmed");
+  });
+
+  form.addEventListener("input", (event) => {
+    if (event.target?.id !== "preview-button") invalidatePreviewConfirmation();
+  });
+  form.addEventListener("change", invalidatePreviewConfirmation);
+
   const stopButton = document.querySelector("#stop-button");
   if (stopButton) {
-    stopButton.addEventListener("click", () => {
-      if (currentAbortController) {
-        currentAbortController.abort();
+    stopButton.addEventListener("click", async () => {
+      if (!state.taskId) return;
+      const action = state.taskStatus === "paused" ? "resume" : "pause";
+      const response = await fetch(`/api/storyagents/tasks/${encodeURIComponent(state.taskId)}/${action}`, {
+        method: "POST",
+      });
+      const snapshot = await response.json();
+      if (!response.ok) {
+        addSystemMessage(`操作失败：${snapshot.error || response.status}`);
+        return;
       }
+      state.taskStatus = snapshot.status;
+      stopButton.textContent = snapshot.status === "paused" ? "继续创作" : "完成本步骤后暂停";
+      setRunState(snapshot.status === "paused" ? "已暂停" : "生成中", snapshot.status === "paused" ? "" : "is-running");
     });
   }
+
+  approveOutlineButton?.addEventListener("click", async () => {
+    if (!state.taskId) return;
+    approveOutlineButton.disabled = true;
+    const response = await fetch(`/api/storyagents/tasks/${encodeURIComponent(state.taskId)}/approve-outline`, {
+      method: "POST",
+    });
+    const snapshot = await response.json();
+    approveOutlineButton.disabled = false;
+    if (!response.ok) {
+      addSystemMessage(`确认大纲失败：${snapshot.error || response.status}`);
+      return;
+    }
+    outlineGate?.classList.add("is-hidden");
+    state.taskStatus = snapshot.status;
+    setRunState("生成中", "is-running");
+    stopButton?.classList.remove("is-hidden");
+  });
 
   // Clear chat button
   const clearChatBtn = document.querySelector("#clear-chat");
   if (clearChatBtn) {
     clearChatBtn.addEventListener("click", clearChat);
+  }
+  const showArtifactsBtn = document.querySelector("#show-artifacts");
+  if (showArtifactsBtn) {
+    showArtifactsBtn.addEventListener("click", () => {
+      const panel = document.querySelector("#artifact-panel");
+      if (!panel) return;
+      const isCollapsed = panel.classList.toggle("is-collapsed");
+      showArtifactsBtn.textContent = isCollapsed ? "创作档案" : "收起档案";
+    });
   }
 
   renderAgentCards();
@@ -1100,10 +1417,13 @@ function bootstrap() {
   resetLog();
   resetProgress();
   updateWorkflowModeUi();
+  renderModePresets();
   hydrateStoredForm();
   loadHistory();
   initEditToolbar();
   document.body.dataset.bootstrap = "ready";
+  openStudioFromHash();
+  restoreActiveTask();
 }
 
 /* ---- History ---- */
@@ -1141,6 +1461,7 @@ function renderHistory(stories) {
       <div class="history-card-footer">
         <div class="history-meta">
           <span>${escapeHtml(s.genre || "")}</span>
+          ${s.author_style ? `<span>${escapeHtml(s.author_style)}</span>` : ""}
           <span>${escapeHtml(getWorkflowConfig(s.mode || "quick").label)}</span>
           <span>${s.chapters || 0} 章</span>
         </div>
@@ -1258,16 +1579,8 @@ async function exportStory(id) {
 }
 
 async function continueStory(id) {
-  const continueChapters = prompt("请输入续写章节数（1-12）：", "3");
-  if (!continueChapters) return;
-
-  const chapters = parseInt(continueChapters, 10);
-  if (isNaN(chapters) || chapters < 1 || chapters > 12) {
-    alert("请输入有效的章节数（1-12）");
-    return;
-  }
-
   let continuationMode = state.mode;
+  let usedContinuations = 0;
   try {
     const storyResponse = await fetch(`/api/storyagents/stories/${encodeURIComponent(id)}`);
     if (storyResponse.ok) {
@@ -1275,14 +1588,40 @@ async function continueStory(id) {
       continuationMode = normalizeWorkflowMode(
         storyData.workflow_mode || storyData._workflow_mode || continuationMode,
       );
+      usedContinuations = Number(storyData._continuation_count || 0);
     }
   } catch (error) {
     console.warn("读取故事模式失败，继续沿用当前模式。", error);
   }
 
+  const limits = getWorkflowConfig(continuationMode).limits;
+  if (limits.maxContinuations !== null && usedContinuations >= limits.maxContinuations) {
+    alert(`${getWorkflowConfig(continuationMode).label}最多续写 ${limits.maxContinuations} 次。`);
+    return;
+  }
+  const rangeHint = limits.maxContinuationChapters
+    ? `1-${limits.maxContinuationChapters}`
+    : "任意正整数";
+  const suggested = Math.min(limits.maxContinuationChapters || 3, 3);
+  const continueChapters = prompt(`请输入续写章节数（${rangeHint}）：`, String(suggested));
+  if (!continueChapters) return;
+
+  const chapters = parseInt(continueChapters, 10);
+  if (
+    isNaN(chapters) ||
+    chapters < 1 ||
+    (limits.maxContinuationChapters !== null && chapters > limits.maxContinuationChapters)
+  ) {
+    alert(limits.maxContinuationChapters
+      ? `请输入有效的章节数（1-${limits.maxContinuationChapters}）`
+      : "请输入大于 0 的章节数");
+    return;
+  }
+
   // Switch to studio view
   setWorkflowMode(continuationMode, { rerenderAgents: true, rerenderArtifacts: true, resetActivityHint: true });
   switchView("studio");
+  showStudioRunView(true);
   state.storyId = id;
   state.artifacts = {};
   state.activeArtifact = "storyBrief";
@@ -1648,6 +1987,7 @@ if (refreshHistoryBtn) {
 try {
   bootstrap();
   initScrollAnimations();
+  initInkTrail();
 } catch (error) {
   console.error(error);
   document.body.dataset.bootstrap = "failed";
@@ -1655,6 +1995,43 @@ try {
   banner.className = "boot-error";
   banner.textContent = `前端启动失败：${error.message}`;
   document.body.prepend(banner);
+}
+
+/* A restrained ink-wash trail for pointer users; touch devices stay untouched. */
+function initInkTrail() {
+  if (window.matchMedia("(pointer: coarse), (prefers-reduced-motion: reduce)").matches) return;
+
+  const layer = document.createElement("div");
+  layer.className = "ink-cursor-layer";
+  layer.setAttribute("aria-hidden", "true");
+  document.body.appendChild(layer);
+
+  let lastX = 0;
+  let lastY = 0;
+  let lastStamp = 0;
+  let sample = 0;
+
+  document.addEventListener("pointermove", (event) => {
+    if (event.pointerType && event.pointerType !== "mouse") return;
+    const now = performance.now();
+    if (now - lastStamp < 34) return;
+    const distance = Math.hypot(event.clientX - lastX, event.clientY - lastY);
+    if (distance < 7) return;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    lastStamp = now;
+
+    const blot = document.createElement("i");
+    blot.className = `ink-cursor-blot${sample++ % 5 === 0 ? " is-deep" : ""}`;
+    blot.style.left = `${event.clientX}px`;
+    blot.style.top = `${event.clientY}px`;
+    blot.style.setProperty("--ink-scale", (0.7 + Math.random() * 0.75).toFixed(2));
+    blot.style.setProperty("--ink-rotate", `${Math.round(Math.random() * 160 - 80)}deg`);
+    layer.appendChild(blot);
+    window.setTimeout(() => blot.remove(), 800);
+
+    while (layer.childElementCount > 24) layer.firstElementChild.remove();
+  }, { passive: true });
 }
 
 /* ---- Scroll Animations (Apple-style) ---- */
@@ -1727,8 +2104,7 @@ function initScrollAnimations() {
   const playHomeIntro = () => {
     if (!enabled()) return;
     const tl = window.gsap.timeline({ defaults: { ease: "power3.out" } });
-    tl.set("#view-home .anim-ready", { autoAlpha: 1 })
-      .fromTo(".topbar", { y: -20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55 })
+    tl.fromTo(".topbar", { y: -20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55 })
       .fromTo("#view-home .home-copy > *", { y: 28, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, stagger: 0.09 }, "<0.1")
       .fromTo("#view-home .showcase-pane-main", { y: 32, rotation: 1.5, autoAlpha: 0 }, { y: 0, rotation: 0, autoAlpha: 1, duration: 0.85 }, "<0.12")
       .fromTo("#view-home .showcase-pane-float", { y: 22, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, stagger: 0.12 }, "<0.35")

@@ -91,6 +91,9 @@ DEFAULT_STORY_CONFIG = _apply_env_overrides(
         "target_chapter_length": DEFAULT_TARGET_CHAPTER_LENGTH,
         "max_recur_limit": 80,
         "workflow_mode": "quick",
+        "author_style": "",
+        "author_style_label": "",
+        "author_style_guidance": "",
         "fast_mode": True,
     }
 )

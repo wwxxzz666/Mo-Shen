@@ -1,4 +1,5 @@
-from storyagents.orchestration.prompts import get_chapter_length_instruction
+from storyagents.orchestration.prompts import get_chapter_length_instruction, writer_prompt
+from storyagents.orchestration.formatting import normalize_chapter_text, render_manuscript
 from storyagents.orchestration.roles import (
     _apply_outline,
     _apply_planner,
@@ -163,6 +164,16 @@ def test_story_propagator_initial_state():
     assert state["revision_count"] == 0
 
 
+def test_manuscript_format_removes_duplicate_agent_heading():
+    chapters = ["# Chapter 1\n\nA complete first chapter.", "第二章正文。"]
+
+    assert normalize_chapter_text(chapters[0]) == "A complete first chapter."
+    assert render_manuscript(chapters) == (
+        "# Chapter 1\n\nA complete first chapter.\n\n"
+        "# Chapter 2\n\n第二章正文。"
+    )
+
+
 def test_chapter_length_instruction_uses_language_appropriate_units():
     state = create_initial_state("Write a mystery.", 1, target_chapter_length=2000)
 
@@ -171,6 +182,21 @@ def test_chapter_length_instruction_uses_language_appropriate_units():
 
     assert "between 1700 and 2300 words" in english
     assert "between 1700 and 2300 non-whitespace characters" in chinese
+
+
+def test_writer_receives_reference_author_guidance():
+    state = create_initial_state("Write a story.", 1)
+    prompt = writer_prompt(
+        state,
+        {
+            "output_language": "Chinese",
+            "author_style_label": "苏童",
+            "author_style_guidance": "favor sensory imagery and family undercurrents",
+        },
+    )
+
+    assert "Reference author: 苏童" in prompt
+    assert "original plot, characters, scenes, and wording" in prompt
 
 
 def test_planner_cannot_override_requested_chapter_count():

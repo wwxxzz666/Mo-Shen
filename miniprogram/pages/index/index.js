@@ -18,7 +18,19 @@ Page({
     genre: '悬疑 / 科幻',
     tone: '冷静、抒情、带压迫感',
     audience: '成年向',
-    chapters: 3
+    chapters: 3,
+    chapterLength: 1500,
+    authorStyleIndex: 0,
+    authorStyles: [
+      { value: '', label: '不指定作家' },
+      { value: 'jia_pingwa', label: '贾平凹' },
+      { value: 'wang_xiaobo', label: '王小波' },
+      { value: 'wang_shuo', label: '王朔' },
+      { value: 'lv_xin', label: '吕新' },
+      { value: 'tian_er', label: '田耳' },
+      { value: 'su_tong', label: '苏童' },
+      { value: 'yu_hua', label: '余华' }
+    ]
   },
 
   /**
@@ -26,6 +38,7 @@ Page({
    */
   onPromptInput(e) {
     this.setData({ prompt: e.detail.value });
+    wx.setStorageSync('mo-shen-story-draft', e.detail.value);
   },
 
   /**
@@ -64,6 +77,14 @@ Page({
     this.setData({ chapters: e.detail.value });
   },
 
+  onChapterLengthChange(e) {
+    this.setData({ chapterLength: e.detail.value });
+  },
+
+  onAuthorStyleChange(e) {
+    this.setData({ authorStyleIndex: Number(e.detail.value) });
+  },
+
   /**
    * 使用快速灵感
    */
@@ -96,7 +117,9 @@ Page({
       `genre=${encodeURIComponent(this.data.genre)}`,
       `tone=${encodeURIComponent(this.data.tone)}`,
       `audience=${encodeURIComponent(this.data.audience)}`,
-      `chapters=${this.data.chapters}`
+      `chapters=${this.data.chapters}`,
+      `chapter_length=${this.data.chapterLength}`,
+      `author_style=${this.data.authorStyles[this.data.authorStyleIndex].value}`
     ].join('&');
 
     wx.navigateTo({
@@ -105,6 +128,9 @@ Page({
   },
 
   onShow() {
-    console.log('首页显示');
+    if (!this.data.prompt) {
+      const draft = wx.getStorageSync('mo-shen-story-draft');
+      if (draft) this.setData({ prompt: draft });
+    }
   }
 });

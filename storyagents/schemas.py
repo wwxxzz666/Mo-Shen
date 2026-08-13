@@ -22,7 +22,6 @@ class StoryPlan(BaseModel):
     target_chapters: int = Field(
         description="Recommended chapter count for the first draft.",
         ge=1,
-        le=12,
     )
 
 

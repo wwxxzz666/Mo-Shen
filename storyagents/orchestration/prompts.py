@@ -7,9 +7,16 @@ from typing import Any, Dict, List
 
 def get_language_instruction(config: dict) -> str:
     language = config.get("output_language", "English").strip()
-    if language.lower() == "english":
-        return ""
-    return f" Write your response in {language}."
+    language_instruction = "" if language.lower() == "english" else f" Write your response in {language}."
+    style_guidance = str(config.get("author_style_guidance", "") or "").strip()
+    if not style_guidance:
+        return language_instruction
+    style_label = str(config.get("author_style_label", "") or "reference author").strip()
+    return (
+        f"{language_instruction} Reference author: {style_label}. Use only these high-level narrative qualities: "
+        f"{style_guidance}. Create original plot, characters, scenes, and wording; "
+        "do not imitate signature phrasing or reproduce existing passages."
+    )
 
 
 def format_recent_summaries(summaries: List[str], limit: int = 3) -> str:

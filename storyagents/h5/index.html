@@ -21,9 +21,16 @@
   <header class="topbar">
     <div class="topbar-brand-wrap">
       <span class="topbar-brand">墨神</span>
-      <span class="topbar-subtitle">Story Operating Room</span>
+      <span class="topbar-subtitle">墨神 · 文字对话</span>
+    </div>
+    <div class="topbar-stream" aria-live="polite">
+      <span class="topbar-stream-label"><i></i> LIVE TRACE</span>
+      <span id="topbar-stream-text">Waiting for workflow input...</span>
     </div>
     <nav class="topbar-nav">
+      <button class="topbar-item studio-nav-item" data-view="studio" data-studio-mode="quick" type="button">灵感工坊</button>
+      <button class="topbar-item studio-nav-item" data-view="studio" data-studio-mode="standard" type="button">故事工坊</button>
+      <button class="topbar-item studio-nav-item" data-view="studio" data-studio-mode="deep" type="button">长篇工坊</button>
       <button class="topbar-item is-active" data-view="home" type="button">首页</button>
       <button class="topbar-item" data-view="studio" type="button">工作室</button>
       <button class="topbar-item" data-view="history" type="button">历史</button>
@@ -34,8 +41,8 @@
     <section id="view-home" class="view is-active">
       <div class="home-stage">
         <div class="home-copy">
-          <p class="view-kicker anim-fade-up delay-1">AI Writer's Room</p>
-          <h1 class="home-title anim-blur-in delay-2">让灵感在液态玻璃里成形。</h1>
+          <p class="view-kicker anim-fade-up delay-1">东方叙事 · 角色对话</p>
+          <h1 class="home-title anim-blur-in delay-2">让灵感在水中流淌。</h1>
           <p class="home-desc anim-fade-up delay-3">
             从故事 brief、大纲、角色到章节成稿，墨神把多智能体协作做成一个更像创作器械而不是命令行的空间。
           </p>
@@ -93,7 +100,32 @@
         </div>
       </div>
 
-      <div class="home-pipeline">
+      <div class="home-studios-heading">
+        <p class="view-kicker">选择一个工作室开始</p>
+        <p class="home-studios-note">不同工作室对应不同的创作深度，后续仍可续写、编辑和导出。</p>
+      </div>
+      <div class="home-studios">
+        <button class="home-studio-card" type="button" data-studio-mode="quick">
+          <span class="home-studio-index">01 / QUICK</span>
+          <strong>灵感工坊</strong>
+          <span>快速把一个想法变成可读的故事初稿。</span>
+          <b>进入工坊 →</b>
+        </button>
+        <button class="home-studio-card" type="button" data-studio-mode="standard">
+          <span class="home-studio-index">02 / STANDARD</span>
+          <strong>故事工坊</strong>
+          <span>补齐世界与角色，适合稳定连载和中篇创作。</span>
+          <b>进入工坊 →</b>
+        </button>
+        <button class="home-studio-card" type="button" data-studio-mode="deep">
+          <span class="home-studio-index">03 / DEEP</span>
+          <strong>长篇工坊</strong>
+          <span>管理复杂设定、伏笔和连续性，面向长篇项目。</span>
+          <b>进入工坊 →</b>
+        </button>
+      </div>
+
+      <div class="home-pipeline legacy-pipeline">
         <div class="pipeline-node anim-scale-in delay-1">
           <span class="pipeline-num">01</span>
           <span class="pipeline-label">策划编辑</span>
@@ -136,78 +168,23 @@
             <span id="run-state" class="state-badge">就绪</span>
           </div>
 
+          <div id="studio-setup-view">
+          <div class="studio-intro">
+            <p id="studio-description" class="studio-description"></p>
+            <p id="mode-summary" class="section-caption"></p>
+          </div>
           <form id="story-form" class="story-form">
             <div class="panel-section">
-              <h3 class="section-title">风格预设</h3>
-              <div class="preset-grid" id="preset-grid">
-                <button class="preset-card" type="button" data-preset="wuxia">
-                  <span class="preset-icon">剑</span>
-                  <span class="preset-name">武侠</span>
-                </button>
-                <button class="preset-card" type="button" data-preset="detective">
-                  <span class="preset-icon">案</span>
-                  <span class="preset-name">推理</span>
-                </button>
-                <button class="preset-card" type="button" data-preset="murakami">
-                  <span class="preset-icon">夜</span>
-                  <span class="preset-name">都市</span>
-                </button>
-                <button class="preset-card" type="button" data-preset="healing">
-                  <span class="preset-icon">光</span>
-                  <span class="preset-name">治愈</span>
-                </button>
-                <button class="preset-card" type="button" data-preset="cyberpunk">
-                  <span class="preset-icon">芯</span>
-                  <span class="preset-name">赛博</span>
-                </button>
-                <button class="preset-card" type="button" data-preset="xianxia">
-                  <span class="preset-icon">云</span>
-                  <span class="preset-name">仙侠</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="panel-section">
-              <h3 class="section-title">故事需求</h3>
-              <textarea id="prompt" name="prompt" rows="5" placeholder="描述你想写的故事：背景、人物、冲突、情绪都可以。" required></textarea>
-            </div>
-
-            <div class="panel-section">
-              <div class="section-head">
-                <h3 class="section-title">创作模式</h3>
-                <p id="mode-summary" class="section-caption">快速出稿 · 直接从 brief 到章节出稿，适合试题材、试节奏和快速起篇。</p>
-              </div>
-              <div class="mode-grid" id="mode-grid">
-                <label class="mode-card is-selected" data-mode="quick">
-                  <input type="radio" name="workflow_mode" value="quick" checked>
-                  <span class="mode-card-top">
-                    <strong>快速出稿</strong>
-                    <em>4 节点</em>
-                  </span>
-                  <span class="mode-card-desc">最短链路起稿，直接产出需求、大纲、章节和成稿。</span>
-                </label>
-                <label class="mode-card" data-mode="standard">
-                  <input type="radio" name="workflow_mode" value="standard">
-                  <span class="mode-card-top">
-                    <strong>标准创作</strong>
-                    <em>6 节点</em>
-                  </span>
-                  <span class="mode-card-desc">补齐世界观与角色层，再进入章节写作，更适合稳定创作。</span>
-                </label>
-                <label class="mode-card" data-mode="deep">
-                  <input type="radio" name="workflow_mode" value="deep">
-                  <span class="mode-card-top">
-                    <strong>深度打磨</strong>
-                    <em>7 节点</em>
-                  </span>
-                  <span class="mode-card-desc">加入连续性审校，适合长篇、人设复杂和伏笔密集的项目。</span>
-                </label>
-              </div>
+              <h3 class="section-title">故事需求 / 大纲</h3>
+              <p class="section-caption">这是创作的核心输入区。写清人物、冲突、世界规则和你希望抵达的结局。</p>
+              <textarea id="prompt" name="prompt" rows="10" placeholder="描述你想写的故事：背景、人物、冲突、情绪与结局方向都可以。" required></textarea>
             </div>
 
             <div class="panel-section">
               <h3 class="section-title">参数设置</h3>
-              <div class="param-grid">
+              <details class="advanced-settings">
+                <summary>高级设置 <span>题材、笔触、语气、章节数和字数</span></summary>
+                <div class="param-grid">
                 <label class="param-field">
                   <span class="param-label">题材</span>
                   <input id="genre" name="genre" type="text" value="悬疑 / 科幻">
@@ -221,9 +198,22 @@
                   <input id="audience" name="audience" type="text" value="成年向">
                 </label>
                 <label class="param-field">
+                  <span class="param-label">参考作家</span>
+                  <select id="author-style" name="author_style" aria-label="选择参考作家">
+                    <option value="">不指定 · 按故事需求创作</option>
+                    <option value="jia_pingwa">贾平凹 · 乡土、人情与沉静叙述</option>
+                    <option value="wang_xiaobo">王小波 · 机智、反讽与思辨感</option>
+                    <option value="wang_shuo">王朔 · 都市口语、锋利对话与调侃</option>
+                    <option value="lv_xin">吕新 · 克制、疏离与碎片化观察</option>
+                    <option value="tian_er">田耳 · 日常质地、隐秘张力与人物群像</option>
+                    <option value="su_tong">苏童 · 感官意象、家族暗流与命运感</option>
+                    <option value="yu_hua">余华 · 平实叙述、荒诞处境与情感节制</option>
+                  </select>
+                </label>
+                <label class="param-field">
                   <span class="param-label">章节数</span>
                   <div class="range-wrap">
-                    <input id="chapters" name="chapters" type="range" min="1" max="12" value="3">
+                    <input id="chapters" name="chapters" type="number" min="1" step="1" value="3" inputmode="numeric">
                     <strong id="chapter-count">3 章</strong>
                   </div>
                 </label>
@@ -234,27 +224,38 @@
                     <strong id="chapter-length-count">1500 字</strong>
                   </div>
                 </label>
-              </div>
-            </div>
-
-            <div class="panel-section">
-              <h3 class="section-title">快速灵感</h3>
-              <div class="chips-row">
-                <button class="chip" type="button" data-prompt="写一个赛博武侠开篇，主角是一名失忆剑客，在高楼与霓虹之间追查一场旧案。">赛博武侠</button>
-                <button class="chip" type="button" data-prompt="写一个发生在沙漠列车上的密室悬疑故事，乘客每个人都像在隐瞒真相。">沙漠列车</button>
-                <button class="chip" type="button" data-prompt="写一个偏治愈的都市奇幻短篇，深夜便利店会收留迷路的人与记忆。">都市奇幻</button>
-              </div>
+                </div>
+              </details>
             </div>
 
             <div class="panel-actions">
-              <button id="submit-button" class="primary-button" type="submit">开始生成</button>
+              <button id="preview-button" class="outline-button" type="button">预览风格（约 200 字）</button>
+              <button id="submit-button" class="primary-button" type="submit" disabled>确认风格后开始</button>
               <button id="stop-button" class="stop-button is-hidden" type="button">
                 <span class="stop-icon">■</span>
-                停止
+                完成本步骤后暂停
               </button>
             </div>
+            <div id="style-preview" class="style-preview is-hidden" aria-live="polite">
+              <p class="style-preview-kicker">STYLE PREVIEW · 不会保存为项目</p>
+              <pre id="style-preview-text"></pre>
+              <div class="preview-actions">
+                <button id="retry-preview-button" class="outline-button" type="button">重新试写</button>
+                <button id="confirm-preview-button" class="primary-button" type="button">这个风格可以</button>
+              </div>
+            </div>
           </form>
+          </div>
 
+          <div id="studio-run-view" class="is-hidden">
+          <section id="outline-gate" class="outline-gate is-hidden" aria-live="polite">
+            <p class="panel-kicker">OUTLINE CHECKPOINT</p>
+            <h2>大纲已经准备好，确认后再写正文</h2>
+            <pre id="outline-gate-content"></pre>
+            <div class="outline-gate-actions">
+              <button id="approve-outline-button" class="primary-button" type="button">确认大纲，开始写正文</button>
+            </div>
+          </section>
           <div id="progress-panel" class="progress-panel is-hidden" aria-live="polite">
             <div class="progress-head">
               <strong id="progress-title">生成中</strong>
@@ -270,20 +271,34 @@
             <h3 class="section-title">智能体状态</h3>
             <div id="agent-list" class="agent-list"></div>
           </div>
+          </div>
         </aside>
 
         <section class="studio-main">
-          <div class="studio-chat-shell glass-panel">
+          <details id="workflow-map-panel" class="workflow-map-panel tech-panel is-hidden">
+            <summary class="workflow-map-summary">查看 Agent 协作详情</summary>
+            <div class="workflow-map-head">
+              <div>
+                <p class="panel-kicker">Workflow topology</p>
+                <h2 class="panel-title">Multi-Agent control plane</h2>
+              </div>
+              <span class="map-status"><i></i><span id="map-status-text">STANDBY</span></span>
+            </div>
+            <div id="workflow-graph" class="workflow-graph" aria-label="Multi-Agent workflow graph"></div>
+          </details>
+          <div id="studio-chat-shell" class="studio-chat-shell glass-panel is-hidden">
             <div class="chat-header">
               <div>
                 <p class="panel-kicker">Writer's Room Feed</p>
                 <h2 class="chat-title">创作过程</h2>
               </div>
               <div class="chat-actions">
+                <button id="show-artifacts" class="chat-action-btn archive-toggle" type="button">创作档案</button>
                 <button id="clear-chat" class="chat-action-btn" type="button" title="清空">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                 </button>
-              </div>
+                </div>
+              </details>
             </div>
             <div class="chat-container" id="chat-container">
               <div class="chat-welcome">
@@ -294,7 +309,7 @@
             </div>
           </div>
 
-          <div class="studio-output">
+          <div id="studio-output" class="studio-output is-hidden">
             <section class="studio-col studio-col-left glass-panel">
               <div class="panel-header compact">
                 <div>
@@ -305,7 +320,7 @@
               <div id="activity-log" class="activity-log"></div>
             </section>
 
-            <section class="studio-col studio-col-right glass-panel">
+            <section id="artifact-panel" class="studio-col studio-col-right glass-panel is-collapsed">
               <div class="panel-header compact">
                 <div>
                   <p class="panel-kicker">Artifacts</p>

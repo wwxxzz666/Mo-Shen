@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import mimetypes
 import os
 import re
+import threading
 import time
+import uuid
 from functools import partial
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -18,9 +21,238 @@ from storyagents.default_config import (
     normalize_workflow_mode,
 )
 from storyagents.orchestration.story_graph import StoryAgentsGraph
+from storyagents.orchestration.formatting import render_manuscript, normalize_chapter_text
 
 
 H5_DIR = Path(__file__).resolve().parent / "h5"
+
+
+WORKSHOP_LIMITS = {
+    "quick": {
+        "label": "灵感工坊",
+        "max_chapters": None,
+        "max_chapter_length": 5000,
+        "max_continue_chapters": 3,
+        "max_continuations": 2,
+    },
+    "standard": {
+        "label": "故事工坊",
+        "max_chapters": None,
+        "max_chapter_length": 5000,
+        "max_continue_chapters": 5,
+        "max_continuations": 2,
+    },
+    "deep": {
+        "label": "长篇工坊",
+        "max_chapters": None,
+        "max_chapter_length": 5000,
+        "max_continue_chapters": None,
+        "max_continuations": None,
+    },
+}
+
+
+class StoryTask:
+    """In-process generation task that survives client disconnects."""
+
+    def __init__(self, task_id: str, payload: dict[str, Any]):
+        self.task_id = task_id
+        self.payload = payload
+        self.status = "queued"
+        self.events: list[dict[str, Any]] = []
+        self.last_state: dict[str, Any] = {}
+        self.story_id: Optional[str] = None
+        self.error = ""
+        self.pause_requested = False
+        self.awaiting_outline = False
+        self.created_at = time.time()
+        self.updated_at = self.created_at
+        self._condition = threading.Condition()
+
+    def append_event(self, event: dict[str, Any]):
+        with self._condition:
+            self.events.append(event)
+            if event.get("event") == "node_complete":
+                self.last_state.update(event.get("data") or {})
+            self.updated_at = time.time()
+
+    def wait_if_paused(self):
+        with self._condition:
+            while self.pause_requested or self.awaiting_outline:
+                self._condition.wait(timeout=1)
+
+    def pause(self):
+        with self._condition:
+            if self.status in {"queued", "running"}:
+                self.pause_requested = True
+                self.status = "paused"
+                self.updated_at = time.time()
+
+    def resume(self):
+        with self._condition:
+            if self.status in {"paused", "awaiting_outline"}:
+                self.pause_requested = False
+                self.awaiting_outline = False
+                self.status = "running"
+                self.updated_at = time.time()
+                self._condition.notify_all()
+
+    def snapshot(self, after: int = 0) -> dict[str, Any]:
+        with self._condition:
+            safe_after = max(0, min(int(after), len(self.events)))
+            return {
+                "task_id": self.task_id,
+                "status": self.status,
+                "events": self.events[safe_after:],
+                "next_cursor": len(self.events),
+                "story_id": self.story_id,
+                "error": self.error,
+                "workflow_mode": normalize_workflow_mode(self.payload.get("mode")),
+                "created_at": self.created_at,
+                "updated_at": self.updated_at,
+            }
+
+
+class StoryTaskRegistry:
+    """Thread-safe registry shared by all request handlers in one server."""
+
+    def __init__(self):
+        self._tasks: dict[str, StoryTask] = {}
+        self._lock = threading.Lock()
+
+    def create(self, payload: dict[str, Any]) -> StoryTask:
+        task = StoryTask(uuid.uuid4().hex, payload)
+        with self._lock:
+            self._tasks[task.task_id] = task
+        return task
+
+    def get(self, task_id: str) -> Optional[StoryTask]:
+        with self._lock:
+            return self._tasks.get(task_id)
+
+
+AUTHOR_STYLE_PROFILES = {
+    "jia_pingwa": {
+        "label": "贾平凹",
+        "guidance": "favor grounded local detail, layered human relationships, and a patient, quietly pressurized narrative pace",
+    },
+    "wang_xiaobo": {
+        "label": "王小波",
+        "guidance": "favor lucid wit, restrained irony, intellectual play, and a clear-eyed response to absurd situations",
+    },
+    "wang_shuo": {
+        "label": "王朔",
+        "guidance": "favor lively urban dialogue, sharp social observation, irreverent humor, and characters who reveal themselves through verbal sparring",
+    },
+    "lv_xin": {
+        "label": "吕新",
+        "guidance": "favor restraint, distance, suggestive fragments, and emotional weight carried by what remains unsaid",
+    },
+    "tian_er": {
+        "label": "田耳",
+        "guidance": "favor everyday texture, a quietly uncanny undercurrent, vivid secondary characters, and tension emerging from ordinary life",
+    },
+    "su_tong": {
+        "label": "苏童",
+        "guidance": "favor sensory imagery, family and social undercurrents, elegant darkness, and a durable sense of fate",
+    },
+    "yu_hua": {
+        "label": "余华",
+        "guidance": "favor plainspoken narration, concrete events, emotional restraint, and humane attention to absurd or difficult circumstances",
+    },
+}
+
+
+def normalize_author_style(value: Any) -> str:
+    candidate = str(value or "").strip().lower()
+    return candidate if candidate in AUTHOR_STYLE_PROFILES else ""
+
+
+def get_author_style_label(value: Any) -> str:
+    key = normalize_author_style(value)
+    return AUTHOR_STYLE_PROFILES.get(key, {}).get("label", "")
+
+
+def get_author_style_guidance(value: Any) -> str:
+    key = normalize_author_style(value)
+    return AUTHOR_STYLE_PROFILES.get(key, {}).get("guidance", "")
+
+
+def enrich_generation_prompt(prompt: str, payload: dict[str, Any]) -> str:
+    """Carry form choices into every Agent without changing the public API shape."""
+    constraints = []
+    for label, key in (("Genre", "genre"), ("Tone", "tone"), ("Audience", "audience")):
+        value = str(payload.get(key, "") or "").strip()
+        if value:
+            constraints.append(f"{label}: {value}")
+
+    style_key = normalize_author_style(payload.get("author_style"))
+    if style_key:
+        profile = AUTHOR_STYLE_PROFILES[style_key]
+        constraints.append(
+            "Reference author: "
+            f"{profile['label']}. Use only these high-level narrative qualities: {profile['guidance']}. "
+            "Create original plot, characters, scenes, and wording; do not imitate signature phrasing or reproduce existing passages."
+        )
+
+    if not constraints:
+        return prompt
+    return f"{prompt}\n\nCreative constraints:\n" + "\n".join(
+        f"- {item}" for item in constraints
+    )
+
+
+def get_workshop_limits(mode: Any) -> dict[str, Any]:
+    return WORKSHOP_LIMITS[normalize_workflow_mode(mode)]
+
+
+def _positive_int(value: Any, field_name: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Field '{field_name}' must be a positive integer.") from exc
+    if parsed < 1:
+        raise ValueError(f"Field '{field_name}' must be at least 1.")
+    return parsed
+
+
+def validate_workshop_request(payload: dict[str, Any]) -> tuple[str, int, int]:
+    """Validate initial-generation limits for the selected workshop."""
+    mode = normalize_workflow_mode(payload.get("mode") or payload.get("workflow_mode"))
+    limits = get_workshop_limits(mode)
+    chapters = _positive_int(
+        payload.get("chapters") or DEFAULT_STORY_CONFIG["target_chapters"],
+        "chapters",
+    )
+    chapter_length = normalize_target_chapter_length(
+        payload.get("chapter_length", payload.get("target_chapter_length"))
+    )
+    max_chapters = limits["max_chapters"]
+    if max_chapters is not None and chapters > max_chapters:
+        raise ValueError(f"{limits['label']}单次最多生成 {max_chapters} 章。")
+    if chapter_length > limits["max_chapter_length"]:
+        raise ValueError(
+            f"{limits['label']}每章最多 {limits['max_chapter_length']} 字。"
+        )
+    return mode, chapters, chapter_length
+
+
+def validate_continuation_request(
+    payload: dict[str, Any],
+    *,
+    used_continuations: int,
+) -> tuple[str, int]:
+    """Validate a continuation without applying a hidden cap to long-form mode."""
+    mode = normalize_workflow_mode(payload.get("mode") or payload.get("workflow_mode"))
+    limits = get_workshop_limits(mode)
+    max_runs = limits["max_continuations"]
+    if max_runs is not None and used_continuations >= max_runs:
+        raise ValueError(f"{limits['label']}最多续写 {max_runs} 次。")
+    chapters = _positive_int(payload.get("continue_chapters", 3), "continue_chapters")
+    max_chapters = limits["max_continue_chapters"]
+    if max_chapters is not None and chapters > max_chapters:
+        raise ValueError(f"{limits['label']}每次续写最多 {max_chapters} 章。")
+    return mode, chapters
 
 
 def build_runtime_config(
@@ -32,6 +264,7 @@ def build_runtime_config(
     output_language: Optional[str] = None,
     chapter_count: Optional[int] = None,
     target_chapter_length: Optional[int] = None,
+    author_style: Optional[str] = None,
     results_dir: Optional[str] = None,
     deepseek_reasoning_effort: Optional[str] = None,
     deepseek_thinking_enabled: Optional[bool] = None,
@@ -56,6 +289,11 @@ def build_runtime_config(
         config["target_chapter_length"] = normalize_target_chapter_length(
             target_chapter_length
         )
+    if author_style is not None:
+        style_key = normalize_author_style(author_style)
+        config["author_style"] = style_key
+        config["author_style_label"] = get_author_style_label(style_key)
+        config["author_style_guidance"] = get_author_style_guidance(style_key)
     if results_dir:
         config["results_dir"] = results_dir
     if deepseek_reasoning_effort:
@@ -76,26 +314,29 @@ def build_request_overrides(payload: dict[str, Any]) -> dict[str, Any]:
         "results_dir": "results_dir",
         "deepseek_reasoning_effort": "deepseek_reasoning_effort",
         "deepseek_thinking_enabled": "deepseek_thinking_enabled",
+        "author_style": "author_style",
     }
     for incoming, target in field_map.items():
         if incoming in payload and payload[incoming] not in (None, ""):
             overrides[target] = (
                 normalize_workflow_mode(payload[incoming])
                 if incoming == "mode"
+                else normalize_author_style(payload[incoming])
+                if incoming == "author_style"
                 else payload[incoming]
             )
     if "workflow_mode" in payload and payload["workflow_mode"] not in (None, ""):
         overrides["workflow_mode"] = normalize_workflow_mode(payload["workflow_mode"])
     if "chapters" in payload and payload["chapters"] not in (None, ""):
-        overrides["target_chapters"] = max(1, min(12, int(payload["chapters"])))
+        _, chapters, _ = validate_workshop_request(payload)
+        overrides["target_chapters"] = chapters
     chapter_length = payload.get(
         "chapter_length",
         payload.get("target_chapter_length"),
     )
     if chapter_length not in (None, ""):
-        overrides["target_chapter_length"] = normalize_target_chapter_length(
-            chapter_length
-        )
+        _, _, normalized_length = validate_workshop_request(payload)
+        overrides["target_chapter_length"] = normalized_length
     if "workflow_mode" in overrides:
         overrides["fast_mode"] = overrides["workflow_mode"] == "quick"
         if overrides["workflow_mode"] == "deep":
@@ -107,6 +348,10 @@ def build_request_overrides(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_story_response_payload(state: dict[str, Any], manuscript: str) -> dict[str, Any]:
+    chapters = [normalize_chapter_text(item) for item in (state.get("chapters", []) or [])]
+    canonical_manuscript = str(manuscript or "").replace("\r\n", "\n").strip()
+    if not canonical_manuscript and chapters:
+        canonical_manuscript = render_manuscript(chapters)
     return {
         "story_title": state.get("story_title", ""),
         "story_brief": state.get("story_brief", ""),
@@ -114,17 +359,20 @@ def build_story_response_payload(state: dict[str, Any], manuscript: str) -> dict
         "character_sheets": state.get("character_sheets", ""),
         "plot_outline": state.get("plot_outline", ""),
         "current_chapter_draft": state.get("current_chapter_draft", ""),
-        "chapters": state.get("chapters", []),
+        "chapters": chapters,
         "chapter_summaries": state.get("chapter_summaries", []),
         "continuity_notes": state.get("continuity_notes", ""),
         "showrunner_status": state.get("showrunner_status", ""),
-        "final_manuscript": manuscript,
+        "final_manuscript": canonical_manuscript,
         "target_chapter_length": normalize_target_chapter_length(
             state.get("target_chapter_length")
             or DEFAULT_STORY_CONFIG["target_chapter_length"]
         ),
         "workflow_mode": normalize_workflow_mode(
             state.get("workflow_mode") or state.get("_workflow_mode")
+        ),
+        "author_style": normalize_author_style(
+            state.get("author_style") or state.get("_author_style")
         ),
     }
 
@@ -148,10 +396,7 @@ def merge_story_payloads(
     else:
         merged_notes = new_notes or existing_notes
 
-    final_manuscript = "\n\n".join(
-        f"# Chapter {idx}\n\n{chapter}"
-        for idx, chapter in enumerate(merged_chapters, start=1)
-    )
+    final_manuscript = render_manuscript(merged_chapters)
 
     return {
         "story_title": generated_story.get("story_title") or existing_story.get("story_title", ""),
@@ -182,11 +427,13 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
         graph_factory: Callable[[dict[str, Any]], StoryAgentsGraph],
         h5_dir: Path,
         results_dir: Path,
+        task_registry: StoryTaskRegistry,
         **kwargs,
     ):
         self.graph_factory = graph_factory
         self.h5_dir = h5_dir
         self.results_dir = results_dir
+        self.task_registry = task_registry
         super().__init__(*args, **kwargs)
 
     def do_OPTIONS(self):
@@ -209,6 +456,11 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
         if parsed.path.startswith("/api/storyagents/stories/"):
             story_id = parsed.path.split("/")[-1]
             self._serve_story(story_id)
+            return
+
+        if parsed.path.startswith("/api/storyagents/tasks/"):
+            task_id = parsed.path.removeprefix("/api/storyagents/tasks/").strip("/")
+            self._serve_task(task_id, parsed.query)
             return
 
         if parsed.path in ("/", "/h5", "/h5/"):
@@ -255,6 +507,23 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             self._handle_draft_stream()
             return
 
+        if parsed.path == "/api/storyagents/preview":
+            self._handle_preview()
+            return
+
+        if parsed.path == "/api/storyagents/tasks":
+            self._create_task()
+            return
+
+        if parsed.path.startswith("/api/storyagents/tasks/"):
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) == 4 and parts[:3] == ["api", "storyagents", "tasks"]:
+                self._control_task(parts[3], "resume")
+                return
+            if len(parts) == 5 and parts[:3] == ["api", "storyagents", "tasks"]:
+                self._control_task(parts[3], parts[4])
+                return
+
         if parsed.path == "/api/storyagents/edit":
             self._handle_edit()
             return
@@ -264,6 +533,102 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             return
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+
+    def _create_task(self):
+        try:
+            payload = self._read_json_body()
+            prompt = str(payload.get("prompt", "")).strip()
+            if not prompt:
+                raise ValueError("Field 'prompt' is required.")
+            _, chapter_count, _ = validate_workshop_request(payload)
+            payload = dict(payload)
+            payload["chapters"] = chapter_count
+            task = self.task_registry.create(payload)
+            worker = threading.Thread(
+                target=self._run_task,
+                args=(task,),
+                daemon=True,
+                name=f"story-task-{task.task_id[:8]}",
+            )
+            worker.start()
+            self._send_json(task.snapshot(), status=HTTPStatus.ACCEPTED)
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+
+    def _run_task(self, task: StoryTask):
+        try:
+            payload = task.payload
+            overrides = build_request_overrides(payload)
+            graph = self.graph_factory(overrides)
+            prompt = enrich_generation_prompt(str(payload["prompt"]).strip(), payload)
+            task.status = "running"
+            require_outline = bool(payload.get("confirm_outline"))
+            for event in graph.generate_story_stream(
+                prompt,
+                target_chapters=int(payload["chapters"]),
+            ):
+                task.append_event(event)
+                node = (event.get("data") or {}).get("node")
+                if require_outline and node == "Outline Agent":
+                    with task._condition:
+                        task.awaiting_outline = True
+                        task.status = "awaiting_outline"
+                        task.updated_at = time.time()
+                task.wait_if_paused()
+
+            if task.last_state.get("final_manuscript"):
+                response = build_story_response_payload(
+                    task.last_state,
+                    task.last_state.get("final_manuscript", ""),
+                )
+                response["workflow_mode"] = overrides.get(
+                    "workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"]
+                )
+                task.story_id = self._save_story(payload, response)
+                task.append_event(
+                    {
+                        "event": "story_saved",
+                        "data": {
+                            "story_id": task.story_id,
+                            "workflow_mode": response["workflow_mode"],
+                        },
+                    }
+                )
+            task.status = "completed"
+            task.updated_at = time.time()
+        except Exception as exc:
+            task.error = str(exc)
+            task.status = "failed"
+            task.updated_at = time.time()
+            task.append_event({"error": str(exc), "type": exc.__class__.__name__})
+
+    def _serve_task(self, task_id: str, query: str):
+        task = self.task_registry.get(unquote(task_id))
+        if task is None:
+            self._send_json({"error": "Task not found."}, status=HTTPStatus.NOT_FOUND)
+            return
+        after = 0
+        for pair in query.split("&"):
+            if pair.startswith("after="):
+                try:
+                    after = int(pair.split("=", 1)[1])
+                except ValueError:
+                    after = 0
+        self._send_json(task.snapshot(after))
+
+    def _control_task(self, task_id: str, action: str):
+        task = self.task_registry.get(unquote(task_id))
+        if task is None:
+            self._send_json({"error": "Task not found."}, status=HTTPStatus.NOT_FOUND)
+            return
+        if action == "pause":
+            task.pause()
+        elif action in {"resume", "approve-outline"}:
+            task.resume()
+        else:
+            self._send_json({"error": "Unsupported task action."}, status=HTTPStatus.BAD_REQUEST)
+            return
+        self._send_json(task.snapshot())
 
     def _handle_draft(self):
         try:
@@ -276,14 +641,15 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                 )
                 return
 
-            chapter_count = max(
-                1,
-                min(12, int(payload.get("chapters") or DEFAULT_STORY_CONFIG["target_chapters"])),
-            )
+            _, chapter_count, _ = validate_workshop_request(payload)
 
             overrides = build_request_overrides(payload)
             graph = self.graph_factory(overrides)
-            state, manuscript = graph.generate_story(prompt, target_chapters=chapter_count)
+            generation_prompt = enrich_generation_prompt(prompt, payload)
+            state, manuscript = graph.generate_story(
+                generation_prompt,
+                target_chapters=chapter_count,
+            )
             response = build_story_response_payload(state, manuscript)
             response["workflow_mode"] = overrides.get(
                 "workflow_mode",
@@ -311,13 +677,11 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                 )
                 return
 
-            chapter_count = max(
-                1,
-                min(12, int(payload.get("chapters") or DEFAULT_STORY_CONFIG["target_chapters"])),
-            )
+            _, chapter_count, _ = validate_workshop_request(payload)
 
             overrides = build_request_overrides(payload)
             graph = self.graph_factory(overrides)
+            generation_prompt = enrich_generation_prompt(prompt, payload)
 
             # Send SSE headers
             self.send_response(HTTPStatus.OK)
@@ -331,7 +695,10 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
 
             # Stream events
             last_state: dict[str, Any] = {}
-            for event in graph.generate_story_stream(prompt, target_chapters=chapter_count):
+            for event in graph.generate_story_stream(
+                generation_prompt,
+                target_chapters=chapter_count,
+            ):
                 if not self._write_sse_event(event):
                     break
 
@@ -364,6 +731,71 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._write_sse_event(
                 {"error": str(exc), "type": exc.__class__.__name__},
+            )
+
+    def _handle_preview(self):
+        """Generate a short, unsaved sample using the current workshop settings."""
+        try:
+            payload = self._read_json_body()
+            prompt = str(payload.get("prompt", "")).strip()
+            if not prompt:
+                self._send_json(
+                    {"error": "Field 'prompt' is required."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            from agentscope.agent import Agent, InjectionConfig, ReActConfig
+            from agentscope.message import UserMsg
+            from storyagents.orchestration.models import create_chat_model
+
+            mode, _, _ = validate_workshop_request(payload)
+            overrides = build_request_overrides(payload)
+            config = build_runtime_config(
+                provider=overrides.get("llm_provider"),
+                quick_model=overrides.get("quick_think_llm"),
+                workflow_mode=mode,
+                output_language=overrides.get("output_language"),
+                author_style=overrides.get("author_style"),
+                target_chapter_length=overrides.get("target_chapter_length"),
+            )
+            model = create_chat_model(
+                provider=config["llm_provider"],
+                model=config["quick_think_llm"],
+                base_url=config.get("backend_url"),
+                stream=False,
+                thinking_enabled=bool(config.get("deepseek_thinking_enabled", False)),
+            )
+            agent = Agent(
+                name="Style Preview",
+                system_prompt=(
+                    "You write compact original fiction previews. Follow the supplied constraints, "
+                    "but never explain them or mention the reference author."
+                ),
+                model=model,
+                react_config=ReActConfig(max_iters=3),
+                injection_config=InjectionConfig(inject_runtime_state=False),
+            )
+            preview_prompt = enrich_generation_prompt(prompt, payload)
+            preview_prompt += (
+                "\n\nWrite one self-contained Chinese fiction preview of about 200 Chinese characters. "
+                "Begin directly with prose. Do not add a title, outline, commentary, or Markdown."
+            )
+
+            async def generate_preview():
+                reply = await agent.reply(UserMsg(name="user", content=preview_prompt))
+                return (reply.get_text_content() or "").strip()
+
+            preview = asyncio.run(generate_preview())
+            if not preview:
+                raise RuntimeError("Preview generation returned no text.")
+            self._send_json({"preview": preview[:260], "mode": mode})
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._send_json(
+                {"error": str(exc), "type": exc.__class__.__name__},
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
 
     def _handle_edit(self):
@@ -458,6 +890,7 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                     existing_story.get("target_chapter_length"),
                 ),
             )
+            payload.setdefault("author_style", existing_story.get("_author_style", ""))
 
             # Build continuation prompt
             existing_chapters = existing_story.get("chapters", [])
@@ -465,10 +898,19 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             plot_outline = existing_story.get("plot_outline", "")
             story_title = existing_story.get("story_title", "")
 
-            continue_chapters = max(
-                1,
-                min(12, int(payload.get("continue_chapters", 3))),
+            used_continuations = max(
+                0,
+                int(existing_story.get("_continuation_count", 0) or 0),
             )
+            try:
+                continuation_mode, continue_chapters = validate_continuation_request(
+                    payload,
+                    used_continuations=used_continuations,
+                )
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+            payload["mode"] = continuation_mode
 
             # Create a prompt that includes context from existing story
             context_prompt = f"""继续创作故事《{story_title}》。
@@ -487,6 +929,7 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             # Use streaming for continuation
             overrides = build_request_overrides(payload)
             graph = self.graph_factory(overrides)
+            generation_prompt = enrich_generation_prompt(context_prompt, payload)
 
             # Send SSE headers
             self.send_response(HTTPStatus.OK)
@@ -500,7 +943,10 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
 
             # Stream events
             last_state: dict[str, Any] = {}
-            for event in graph.generate_story_stream(context_prompt, target_chapters=continue_chapters):
+            for event in graph.generate_story_stream(
+                generation_prompt,
+                target_chapters=continue_chapters,
+            ):
                 if event["event"] == "node_complete":
                     last_state.update(event["data"])
                     merged_event_data = dict(event["data"])
@@ -509,9 +955,8 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                         event["data"].get("chapters", [])
                     )
                     if merged_event_data.get("final_manuscript"):
-                        merged_event_data["final_manuscript"] = "\n\n".join(
-                            f"# Chapter {idx}\n\n{chapter}"
-                            for idx, chapter in enumerate(merged_event_data["chapters"], start=1)
+                        merged_event_data["final_manuscript"] = render_manuscript(
+                            merged_event_data["chapters"]
                         )
                     event = {"event": "node_complete", "data": merged_event_data}
                 if not self._write_sse_event(event):
@@ -526,7 +971,16 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                     payload.get("mode", DEFAULT_STORY_CONFIG["workflow_mode"])
                 )
                 merged_story = merge_story_payloads(existing_story, generated_story)
-                self._write_story_file(path, self._apply_story_metadata(existing_story, merged_story))
+                updated_story = self._apply_story_metadata(
+                    existing_story,
+                    merged_story,
+                    payload=payload,
+                )
+                updated_story["_continuation_count"] = used_continuations + 1
+                self._write_story_file(
+                    path,
+                    updated_story,
+                )
                 saved_event = {
                     "event": "story_saved",
                     "data": {
@@ -553,6 +1007,7 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
                         "prompt": data.get("_prompt", ""),
                         "genre": data.get("_genre", ""),
                         "mode": data.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"]),
+                        "author_style": get_author_style_label(data.get("_author_style", "")),
                         "chapters": len(data.get("chapters", [])),
                         "created_at": data.get("_created_at", ""),
                         "updated_at": data.get("_updated_at", ""),
@@ -660,6 +1115,17 @@ class StoryAgentsRequestHandler(BaseHTTPRequestHandler):
             if payload is not None
             else existing_story.get("_genre", "")
         )
+        result["_author_style"] = normalize_author_style(
+            (
+                payload.get("author_style", existing_story.get("_author_style", ""))
+                if payload is not None
+                else existing_story.get("_author_style", "")
+            )
+        )
+        result["_continuation_count"] = max(
+            0,
+            int(existing_story.get("_continuation_count", 0) or 0),
+        )
         result["_workflow_mode"] = normalize_workflow_mode(
             (
                 payload.get("mode", existing_story.get("_workflow_mode", DEFAULT_STORY_CONFIG["workflow_mode"]))
@@ -757,18 +1223,23 @@ def create_server(
                 output_language=overrides.get("output_language"),
                 chapter_count=overrides.get("target_chapters"),
                 target_chapter_length=overrides.get("target_chapter_length"),
+                author_style=overrides.get("author_style"),
                 results_dir=overrides.get("results_dir"),
                 deepseek_reasoning_effort=overrides.get("deepseek_reasoning_effort"),
                 deepseek_thinking_enabled=overrides.get("deepseek_thinking_enabled"),
             )
         )
+    task_registry = StoryTaskRegistry()
     handler = partial(
         StoryAgentsRequestHandler,
         graph_factory=graph_factory,
         h5_dir=(h5_dir or H5_DIR),
         results_dir=Path(DEFAULT_STORY_CONFIG["results_dir"]),
+        task_registry=task_registry,
     )
-    return ThreadingHTTPServer((host, port), handler)
+    server = ThreadingHTTPServer((host, port), handler)
+    server.task_registry = task_registry
+    return server
 
 
 def serve(
